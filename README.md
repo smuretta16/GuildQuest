@@ -4,6 +4,18 @@ Combined implementation based on:
 - Sonja_Muretta_GUILDQUEST
 - ThangNguyen_GUILDQUEST
 
+## Run (CLI)
+
+```bash
+python3 guildquest.py
+```
+
+## Run (GUI)
+
+```bash
+python3 guildquest_gui.py
+```
+
 ## Included features
 
 ### Thang
@@ -22,7 +34,7 @@ Combined implementation based on:
 - Advance world time
 
 ## How to play
-1. Start the game with `python3 guildquest.py`.
+1. Start the game with `python3 guildquest.py` (CLI) or `python3 guildquest_gui.py` (GUI).
 2. In the main menu, use numbers to choose actions (`0` exits).
 3. Go to `1. Users` to switch active user or create a new one.
 4. Create a campaign from `2. Create campaign`.
@@ -36,3 +48,4 @@ Combined implementation based on:
 - In-memory data only (no database yet)
 - Seeded users, realms, campaigns, and events are included at startup
 - CLI menu driven
+- GUI uses `tkinter` (standard Python library)
