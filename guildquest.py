@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import os
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional
@@ -107,10 +109,67 @@ class Settings:
 
 
 @dataclass
+class PlayerProfile:
+    """GuildQuest game identity for a player, tracked across sessions."""
+    character_name: str
+    preferred_realm: str
+    wins: int = 0
+    losses: int = 0
+    quests_completed: int = 0
+    achievements: List[str] = field(default_factory=list)
+    quest_history: List[str] = field(default_factory=list)
+    inventory_snapshot: List[Item] = field(default_factory=list)
+
+    def record_win(self) -> None:
+        self.wins += 1
+
+    def record_loss(self) -> None:
+        self.losses += 1
+
+    def record_quest(self, quest_name: str) -> None:
+        """Record a completed quest by name and bump the counter."""
+        self.quest_history.append(quest_name)
+        self.quests_completed += 1
+
+    def update_snapshot(self, items: List[Item]) -> None:
+        """Replace the inventory snapshot with the player's current items."""
+        self.inventory_snapshot = list(items)
+
+    def add_achievement(self, achievement: str) -> None:
+        if achievement not in self.achievements:
+            self.achievements.append(achievement)
+
+    def win_rate(self) -> float:
+        total = self.wins + self.losses
+        return self.wins / total if total > 0 else 0.0
+
+    def __str__(self) -> str:
+        quest_lines = (
+            "\n".join(f"    - {q}" for q in self.quest_history)
+            if self.quest_history else "    none"
+        )
+        item_lines = (
+            "\n".join(f"    - {i.name} [{i.rarity.value}]" for i in self.inventory_snapshot)
+            if self.inventory_snapshot else "    none"
+        )
+        return (
+            f"  Character : {self.character_name}\n"
+            f"  Realm     : {self.preferred_realm}\n"
+            f"  Wins      : {self.wins}  |  Losses: {self.losses}  "
+            f"|  Win Rate: {self.win_rate():.0%}\n"
+            f"  Quests    : {self.quests_completed}\n"
+            f"  Quest History:\n{quest_lines}\n"
+            f"  Inventory Snapshot:\n{item_lines}\n"
+            f"  Achievements: {', '.join(self.achievements) if self.achievements else 'none'}"
+        )
+
+
+@dataclass
 class User:
     user_id: int
     name: str
     settings: Settings = field(default_factory=Settings)
+    profile: Optional[PlayerProfile] = None
 
 
 @dataclass
@@ -122,6 +181,80 @@ class Campaign:
     archived: bool = False
     event_ids: List[int] = field(default_factory=list)
     shares: Dict[int, Permission] = field(default_factory=dict)
+
+
+PROFILES_FILE = "profiles.json"
+
+
+def save_profiles(users: Dict[int, "User"], path: str = PROFILES_FILE) -> None:
+    """Persist all player profiles to a JSON text file.
+
+    Only users who have a profile are written. The file is keyed by user_id
+    so it survives re-ordering or user deletion.
+    """
+    data: Dict[str, dict] = {}
+    for user in users.values():
+        if user.profile is not None:
+            p = user.profile
+            data[str(user.user_id)] = {
+                "username": user.name,
+                "character_name": p.character_name,
+                "preferred_realm": p.preferred_realm,
+                "wins": p.wins,
+                "losses": p.losses,
+                "quests_completed": p.quests_completed,
+                "achievements": p.achievements,
+                "quest_history": p.quest_history,
+                "inventory_snapshot": [
+                    {"name": i.name, "description": i.description, "rarity": i.rarity.value}
+                    for i in p.inventory_snapshot
+                ],
+            }
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+
+def load_profiles(users: Dict[int, "User"], path: str = PROFILES_FILE) -> None:
+    """Load player profiles from a JSON text file into the matching User objects.
+
+    Users whose id is not in the file are left with profile=None.
+    Missing or corrupt files are silently ignored so the app still starts.
+    """
+    if not os.path.exists(path):
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data: Dict[str, dict] = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return
+
+    for uid_str, entry in data.items():
+        try:
+            uid = int(uid_str)
+        except ValueError:
+            continue
+        if uid not in users:
+            continue
+        raw_items = entry.get("inventory_snapshot", [])
+        snapshot = [
+            Item(
+                name=it.get("name", ""),
+                description=it.get("description", ""),
+                rarity=Rarity(it.get("rarity", Rarity.COMMON.value)),
+            )
+            for it in raw_items
+            if isinstance(it, dict)
+        ]
+        users[uid].profile = PlayerProfile(
+            character_name=entry.get("character_name", "Unknown"),
+            preferred_realm=entry.get("preferred_realm", "Avalon"),
+            wins=int(entry.get("wins", 0)),
+            losses=int(entry.get("losses", 0)),
+            quests_completed=int(entry.get("quests_completed", 0)),
+            achievements=list(entry.get("achievements", [])),
+            quest_history=list(entry.get("quest_history", [])),
+            inventory_snapshot=snapshot,
+        )
 
 
 class GuildQuestGame:
@@ -141,6 +274,7 @@ class GuildQuestGame:
         self.next_character_id = 1
 
         self.seed_data()
+        load_profiles(self.users)
 
     def seed_data(self) -> None:
         self.users[1] = User(1, "User[1]")
@@ -445,6 +579,43 @@ class GuildQuestGame:
         campaign.shares[target.user_id] = Permission[perm]
         print(f"Campaign shared with {target.name} as {perm}.")
 
+    def profile_menu(self) -> None:
+        user = self.active_user
+        while True:
+            print(f"\nProfile — {user.name}")
+            if user.profile:
+                print(user.profile)
+            else:
+                print("  (no profile set up yet)")
+            print("1. Create / edit profile")
+            print("2. View profile")
+            print("0. Back")
+            pick = self.read_int("> ", 0, 2)
+            if pick == 0:
+                return
+            if pick == 1:
+                char_name = input("Character name: ").strip()
+                if not char_name:
+                    print("Character name is required.")
+                    continue
+                realm = self.choose_realm()
+                preferred = realm.name if realm else "Avalon"
+                if user.profile is None:
+                    user.profile = PlayerProfile(
+                        character_name=char_name,
+                        preferred_realm=preferred,
+                    )
+                else:
+                    user.profile.character_name = char_name
+                    user.profile.preferred_realm = preferred
+                save_profiles(self.users)
+                print("Profile saved.")
+            elif pick == 2:
+                if user.profile:
+                    print(user.profile)
+                else:
+                    print("No profile found. Create one first.")
+
     def settings_menu(self) -> None:
         settings = self.active_user.settings
         while True:
@@ -536,10 +707,12 @@ class GuildQuestGame:
             print("11. Share campaign")
             print("12. Settings")
             print("13. Advance world time")
+            print("14. Player profile")
             print("0. Exit")
 
-            choice = self.read_int("> ", 0, 13)
+            choice = self.read_int("> ", 0, 14)
             if choice == 0:
+                save_profiles(self.users)
                 print("Goodbye.")
                 return
             if choice == 1:
@@ -568,6 +741,8 @@ class GuildQuestGame:
                 self.settings_menu()
             elif choice == 13:
                 self.advance_world_time()
+            elif choice == 14:
+                self.profile_menu()
 
 
 def main() -> None:

@@ -7,6 +7,7 @@ from guildquest import (
     GuildQuestGame,
     Item,
     Permission,
+    PlayerProfile,
     QuestEvent,
     Rarity,
     Realm,
@@ -15,6 +16,7 @@ from guildquest import (
     User,
     Visibility,
     WorldTime,
+    save_profiles,
 )
 
 
@@ -32,18 +34,21 @@ class GuildQuestGUI:
         self.tab_events = ttk.Frame(self.notebook)
         self.tab_characters = ttk.Frame(self.notebook)
         self.tab_realms = ttk.Frame(self.notebook)
+        self.tab_profiles = ttk.Frame(self.notebook)
 
         self.notebook.add(self.tab_users, text="Users / Settings")
         self.notebook.add(self.tab_campaigns, text="Campaigns")
         self.notebook.add(self.tab_events, text="Quest Events")
         self.notebook.add(self.tab_characters, text="Characters")
         self.notebook.add(self.tab_realms, text="Realms")
+        self.notebook.add(self.tab_profiles, text="Player Profile")
 
         self._build_users_tab()
         self._build_campaigns_tab()
         self._build_events_tab()
         self._build_characters_tab()
         self._build_realms_tab()
+        self._build_profiles_tab()
 
         self._refresh_all()
 
@@ -54,6 +59,7 @@ class GuildQuestGUI:
         self._refresh_characters()
         self._refresh_realms()
         self._refresh_settings()
+        self._refresh_profiles()
 
     def _build_users_tab(self) -> None:
         frame = self.tab_users
@@ -593,6 +599,141 @@ class GuildQuestGUI:
         self.item_name_var.set("")
         self.item_desc_var.set("")
         self._refresh_characters()
+
+    def _build_profiles_tab(self) -> None:
+        frame = self.tab_profiles
+
+        # ── Left: read-only profile display ──────────────────────────────
+        display = ttk.Frame(frame)
+        display.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=8, pady=6)
+
+        stats_box = ttk.LabelFrame(display, text="Stats")
+        stats_box.pack(fill=tk.X, pady=(0, 6))
+
+        self.profile_stats_text = tk.Text(stats_box, height=7, state="disabled", wrap="word")
+        self.profile_stats_text.pack(fill=tk.X, padx=6, pady=6)
+
+        history_box = ttk.LabelFrame(display, text="Quest History")
+        history_box.pack(fill=tk.BOTH, expand=True, pady=(0, 6))
+
+        self.profile_quest_list = tk.Listbox(history_box, height=6)
+        self.profile_quest_list.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        snapshot_box = ttk.LabelFrame(display, text="Inventory Snapshot")
+        snapshot_box.pack(fill=tk.BOTH, expand=True)
+
+        self.profile_inventory_list = tk.Listbox(snapshot_box, height=5)
+        self.profile_inventory_list.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        # ── Right: create/edit form ───────────────────────────────────────
+        edit_box = ttk.LabelFrame(frame, text="Create / Edit Profile")
+        edit_box.pack(side=tk.RIGHT, fill=tk.Y, padx=8, pady=6)
+
+        self.profile_char_name_var = tk.StringVar()
+        self.profile_realm_var = tk.StringVar()
+
+        ttk.Label(edit_box, text="Character Name").grid(row=0, column=0, sticky="w", padx=6, pady=4)
+        ttk.Entry(edit_box, textvariable=self.profile_char_name_var, width=22).grid(
+            row=0, column=1, padx=6, pady=4
+        )
+
+        ttk.Label(edit_box, text="Preferred Realm").grid(row=1, column=0, sticky="w", padx=6, pady=4)
+        self.profile_realm_combo = ttk.Combobox(
+            edit_box, textvariable=self.profile_realm_var, state="readonly", width=20
+        )
+        self.profile_realm_combo.grid(row=1, column=1, padx=6, pady=4)
+
+        ttk.Button(edit_box, text="Save Profile", command=self._save_profile).grid(
+            row=2, column=0, columnspan=2, padx=6, pady=8, sticky="w"
+        )
+
+        ttk.Separator(edit_box, orient="horizontal").grid(
+            row=3, column=0, columnspan=2, sticky="ew", padx=6, pady=4
+        )
+        ttk.Label(edit_box, text="Active user's profile is shown on the left.",
+                  wraplength=180, foreground="gray").grid(
+            row=4, column=0, columnspan=2, padx=6, pady=4, sticky="w"
+        )
+
+    def _refresh_profiles(self) -> None:
+        user = self.game.active_user
+        p = user.profile
+
+        # Update realm dropdown
+        realm_values = [
+            f"{r.realm_id}: {r.name}"
+            for r in sorted(self.game.realms.values(), key=lambda r: r.realm_id)
+        ]
+        self.profile_realm_combo["values"] = realm_values
+
+        # Stats text
+        self.profile_stats_text.config(state="normal")
+        self.profile_stats_text.delete("1.0", tk.END)
+        if p:
+            total = p.wins + p.losses
+            win_rate = f"{p.wins / total:.0%}" if total > 0 else "N/A"
+            stats = (
+                f"Player     : {user.name}\n"
+                f"Character  : {p.character_name}\n"
+                f"Realm      : {p.preferred_realm}\n"
+                f"Wins       : {p.wins}   Losses: {p.losses}   Win Rate: {win_rate}\n"
+                f"Quests     : {p.quests_completed}\n"
+                f"Achievements: {', '.join(p.achievements) if p.achievements else 'none'}"
+            )
+            self.profile_stats_text.insert(tk.END, stats)
+            # Pre-fill the edit form with current values
+            self.profile_char_name_var.set(p.character_name)
+            matching = next(
+                (v for v in realm_values if v.split(": ", 1)[1] == p.preferred_realm), ""
+            )
+            self.profile_realm_var.set(matching)
+        else:
+            self.profile_stats_text.insert(tk.END, f"No profile yet for {user.name}.\nFill in the form and click Save Profile.")
+            self.profile_char_name_var.set("")
+            if realm_values:
+                self.profile_realm_var.set(realm_values[0])
+        self.profile_stats_text.config(state="disabled")
+
+        # Quest history
+        self.profile_quest_list.delete(0, tk.END)
+        if p and p.quest_history:
+            for quest in p.quest_history:
+                self.profile_quest_list.insert(tk.END, quest)
+        else:
+            self.profile_quest_list.insert(tk.END, "(no quests recorded yet)")
+
+        # Inventory snapshot
+        self.profile_inventory_list.delete(0, tk.END)
+        if p and p.inventory_snapshot:
+            for item in p.inventory_snapshot:
+                self.profile_inventory_list.insert(tk.END, f"{item.name}  [{item.rarity.value}]  {item.description}")
+        else:
+            self.profile_inventory_list.insert(tk.END, "(no inventory snapshot yet)")
+
+    def _save_profile(self) -> None:
+        char_name = self.profile_char_name_var.get().strip()
+        realm_value = self.profile_realm_var.get()
+        if not char_name:
+            messagebox.showerror("Validation", "Character name is required.")
+            return
+        if not realm_value:
+            messagebox.showerror("Validation", "Select a preferred realm.")
+            return
+        preferred_realm = realm_value.split(": ", 1)[1]
+
+        user = self.game.active_user
+        if user.profile is None:
+            user.profile = PlayerProfile(
+                character_name=char_name,
+                preferred_realm=preferred_realm,
+            )
+        else:
+            user.profile.character_name = char_name
+            user.profile.preferred_realm = preferred_realm
+
+        save_profiles(self.game.users)
+        self._refresh_profiles()
+        messagebox.showinfo("Profile", "Profile saved.")
 
     def _add_realm(self) -> None:
         name = self.realm_name_var.get().strip()

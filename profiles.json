@@ -1,0 +1,13 @@
+{
+  "1": {
+    "username": "User[1]",
+    "character_name": "testing testing testing",
+    "preferred_realm": "Lunar Outpost",
+    "wins": 0,
+    "losses": 0,
+    "quests_completed": 0,
+    "achievements": [],
+    "quest_history": [],
+    "inventory_snapshot": []
+  }
+}
