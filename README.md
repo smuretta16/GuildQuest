@@ -4,12 +4,6 @@ Combined implementation based on:
 - Sonja_Muretta_GUILDQUEST
 - ThangNguyen_GUILDQUEST
 
-## Run (CLI)
-
-```bash
-python3 guildquest.py
-```
-
 ## Run (GUI)
 
 ```bash
