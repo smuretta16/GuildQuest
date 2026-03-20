@@ -574,22 +574,22 @@ class GuildQuestGUI:
                     f"  {u.name} ({p.character_name})  W:{p.wins}  L:{p.losses}  Q:{p.quests_completed}")
 
     def _launch_escort(self, p1: PlayerProfile, p2: PlayerProfile):
-        """Launch Escort Mission in a pygame window (runs in same process)."""
-        if not PYGAME_AVAILABLE:
-            messagebox.showerror(
-                "Pygame Required",
-                "Escort Mission requires pygame.\n\n"
-                "Install it by running:\n    pip install pygame\n\nThen restart the app."
-            )
-            return
+        """Launch Escort Mission (pygame if available, otherwise Tkinter fallback)."""
 
-        # Warn user the main window will freeze while pygame runs
-        if not messagebox.askyesno(
-            "Launch Escort Mission",
-            "Escort Across the Realm will open in a new Pygame window.\n"
-            "The main GuildQuest window will be unresponsive while the game runs.\n\n"
-            "Launch now?"
-        ):
+        if PYGAME_AVAILABLE:
+            prompt = (
+                "Escort Across the Realm will open in a new Pygame window.\n"
+                "The main GuildQuest window will be unresponsive while the game runs.\n\n"
+                "Launch now?"
+            )
+        else:
+            prompt = (
+                "Pygame isn't installed, so Escort Across the Realm will run in a Tkinter window instead.\n"
+                "Controls are the same.\n\n"
+                "Launch now?"
+            )
+
+        if not messagebox.askyesno("Launch Escort Mission", prompt):
             return
 
         engine = EscortMission()
@@ -600,7 +600,10 @@ class GuildQuestGUI:
         # Hide main window while pygame runs so they don't fight for focus
         self.root.withdraw()
         try:
-            result = engine.run_pygame_session()
+            if PYGAME_AVAILABLE:
+                result = engine.run_pygame_session()
+            else:
+                result = engine.run_tkinter_session(parent=self.root)
         finally:
             self.root.deiconify()
             from guildquest import save_profiles

@@ -32,7 +32,8 @@ import random
 import subprocess
 import sys
 import tempfile
-from typing import Optional, TYPE_CHECKING
+from dataclasses import dataclass
+from typing import Callable, Optional, TYPE_CHECKING
 
 from mini_adventure import MiniAdventure, GameResult
 from guildquest import Item, Rarity, PlayerProfile
@@ -73,18 +74,87 @@ JUMP_SPEED = -11.5
 MAX_HEALTH = 3
 
 
+# --- Backend-neutral geometry & input (pygame optional) ---
+
+KEY_P1_LEFT = "a"
+KEY_P1_RIGHT = "d"
+KEY_P1_JUMP = "w"
+KEY_P2_LEFT = "Left"
+KEY_P2_RIGHT = "Right"
+KEY_P2_JUMP = "Up"
+
+
+@dataclass
+class Rect:
+    x: int
+    y: int
+    w: int
+    h: int
+
+    @property
+    def left(self) -> int:
+        return self.x
+
+    @left.setter
+    def left(self, v: int) -> None:
+        self.x = v
+
+    @property
+    def right(self) -> int:
+        return self.x + self.w
+
+    @right.setter
+    def right(self, v: int) -> None:
+        self.x = v - self.w
+
+    @property
+    def top(self) -> int:
+        return self.y
+
+    @top.setter
+    def top(self, v: int) -> None:
+        self.y = v
+
+    @property
+    def bottom(self) -> int:
+        return self.y + self.h
+
+    @bottom.setter
+    def bottom(self, v: int) -> None:
+        self.y = v - self.h
+
+    @property
+    def centerx(self) -> int:
+        return self.x + self.w // 2
+
+    @property
+    def topleft(self) -> tuple[int, int]:
+        return (self.x, self.y)
+
+    @topleft.setter
+    def topleft(self, v: tuple[int, int]) -> None:
+        self.x, self.y = int(v[0]), int(v[1])
+
+    def colliderect(self, other: "Rect") -> bool:
+        return (
+            self.left < other.right
+            and self.right > other.left
+            and self.top < other.bottom
+            and self.bottom > other.top
+        )
+
 # ── Player physics object ─────────────────────────────────────────────────
 
 class _Player:
     def __init__(self, x, y, color, label):
-        self.rect     = pygame.Rect(x, y, 28, 36)
+        self.rect     = Rect(int(x), int(y), 28, 36)
         self.color    = color
         self.label    = label
         self.vel_y    = 0.0
         self.on_ground = False
 
     def move(self, dx, solids):
-        self.rect.x += dx
+        self.rect.x += int(dx)
         for s in solids:
             if self.rect.colliderect(s):
                 if dx > 0: self.rect.right = s.left
@@ -125,94 +195,94 @@ class _EscortGame:
 
         def layout_set() -> dict:
             base = [
-                pygame.Rect(0,   500, 960, 40),   # floor
-                pygame.Rect(0,   0,   20,  540),  # left wall
-                pygame.Rect(940, 0,   20,  540),  # right wall
-                pygame.Rect(0,   0,   960, 20),   # ceiling
+                Rect(0,   500, 960, 40),   # floor
+                Rect(0,   0,   20,  540),  # left wall
+                Rect(940, 0,   20,  540),  # right wall
+                Rect(0,   0,   960, 20),   # ceiling
             ]
 
             layouts = []
 
             layouts.append({
                 "platforms": base + [
-                    pygame.Rect(80,  430, 220, 18),
-                    pygame.Rect(320, 390, 220, 18),
-                    pygame.Rect(560, 350, 220, 18),
-                    pygame.Rect(120, 320, 180, 18),
-                    pygame.Rect(360, 300, 160, 18),
-                    pygame.Rect(600, 280, 200, 18),
-                    pygame.Rect(200, 240, 180, 18),
-                    pygame.Rect(460, 220, 180, 18),
-                    pygame.Rect(720, 200, 180, 18),
-                    pygame.Rect(120, 170, 200, 18),
-                    pygame.Rect(380, 160, 200, 18),
-                    pygame.Rect(640, 140, 200, 18),
+                    Rect(80,  430, 220, 18),
+                    Rect(320, 390, 220, 18),
+                    Rect(560, 350, 220, 18),
+                    Rect(120, 320, 180, 18),
+                    Rect(360, 300, 160, 18),
+                    Rect(600, 280, 200, 18),
+                    Rect(200, 240, 180, 18),
+                    Rect(460, 220, 180, 18),
+                    Rect(720, 200, 180, 18),
+                    Rect(120, 170, 200, 18),
+                    Rect(380, 160, 200, 18),
+                    Rect(640, 140, 200, 18),
                 ],
                 "walls": [
-                    pygame.Rect(520, 360, 16, 140),
-                    pygame.Rect(680, 220, 16, 280),
+                    Rect(520, 360, 16, 140),
+                    Rect(680, 220, 16, 280),
                 ],
                 "hazards": [
-                    pygame.Rect(360, 482, 70, 18),
-                    pygame.Rect(520, 482, 70, 18),
-                    pygame.Rect(640, 482, 70, 18),
-                    pygame.Rect(420, 340, 60, 16),
-                    pygame.Rect(760, 182, 60, 16),
+                    Rect(360, 482, 70, 18),
+                    Rect(520, 482, 70, 18),
+                    Rect(640, 482, 70, 18),
+                    Rect(420, 340, 60, 16),
+                    Rect(760, 182, 60, 16),
                 ],
-                "goal": pygame.Rect(880, 110, 40, 40),
-                "lever": pygame.Rect(140, 120, 40, 40),
+                "goal": Rect(880, 110, 40, 40),
+                "lever": Rect(140, 120, 40, 40),
             })
 
             layouts.append({
                 "platforms": base + [
-                    pygame.Rect(70,  420, 200, 18),
-                    pygame.Rect(290, 380, 200, 18),
-                    pygame.Rect(520, 340, 200, 18),
-                    pygame.Rect(180, 300, 180, 18),
-                    pygame.Rect(430, 270, 180, 18),
-                    pygame.Rect(680, 250, 180, 18),
-                    pygame.Rect(120, 210, 200, 18),
-                    pygame.Rect(380, 190, 200, 18),
-                    pygame.Rect(640, 170, 200, 18),
+                    Rect(70,  420, 200, 18),
+                    Rect(290, 380, 200, 18),
+                    Rect(520, 340, 200, 18),
+                    Rect(180, 300, 180, 18),
+                    Rect(430, 270, 180, 18),
+                    Rect(680, 250, 180, 18),
+                    Rect(120, 210, 200, 18),
+                    Rect(380, 190, 200, 18),
+                    Rect(640, 170, 200, 18),
                 ],
                 "walls": [
-                    pygame.Rect(460, 340, 16, 160),
-                    pygame.Rect(740, 220, 16, 280),
+                    Rect(460, 340, 16, 160),
+                    Rect(740, 220, 16, 280),
                 ],
                 "hazards": [
-                    pygame.Rect(300, 482, 70, 18),
-                    pygame.Rect(470, 482, 70, 18),
-                    pygame.Rect(630, 482, 70, 18),
-                    pygame.Rect(500, 320, 60, 16),
+                    Rect(300, 482, 70, 18),
+                    Rect(470, 482, 70, 18),
+                    Rect(630, 482, 70, 18),
+                    Rect(500, 320, 60, 16),
                 ],
-                "goal": pygame.Rect(880, 150, 40, 40),
-                "lever": pygame.Rect(120, 90, 40, 40),
+                "goal": Rect(880, 150, 40, 40),
+                "lever": Rect(120, 90, 40, 40),
             })
 
             layouts.append({
                 "platforms": base + [
-                    pygame.Rect(90,  430, 220, 18),
-                    pygame.Rect(340, 400, 220, 18),
-                    pygame.Rect(600, 360, 220, 18),
-                    pygame.Rect(140, 320, 180, 18),
-                    pygame.Rect(380, 300, 160, 18),
-                    pygame.Rect(620, 280, 200, 18),
-                    pygame.Rect(220, 240, 180, 18),
-                    pygame.Rect(480, 220, 180, 18),
-                    pygame.Rect(740, 200, 180, 18),
+                    Rect(90,  430, 220, 18),
+                    Rect(340, 400, 220, 18),
+                    Rect(600, 360, 220, 18),
+                    Rect(140, 320, 180, 18),
+                    Rect(380, 300, 160, 18),
+                    Rect(620, 280, 200, 18),
+                    Rect(220, 240, 180, 18),
+                    Rect(480, 220, 180, 18),
+                    Rect(740, 200, 180, 18),
                 ],
                 "walls": [
-                    pygame.Rect(560, 340, 16, 160),
-                    pygame.Rect(700, 260, 16, 240),
+                    Rect(560, 340, 16, 160),
+                    Rect(700, 260, 16, 240),
                 ],
                 "hazards": [
-                    pygame.Rect(360, 482, 70, 18),
-                    pygame.Rect(520, 482, 70, 18),
-                    pygame.Rect(640, 482, 70, 18),
-                    pygame.Rect(420, 330, 60, 16),
+                    Rect(360, 482, 70, 18),
+                    Rect(520, 482, 70, 18),
+                    Rect(640, 482, 70, 18),
+                    Rect(420, 330, 60, 16),
                 ],
-                "goal": pygame.Rect(880, 120, 40, 40),
-                "lever": pygame.Rect(160, 120, 40, 40),
+                "goal": Rect(880, 120, 40, 40),
+                "lever": Rect(160, 120, 40, 40),
             })
 
             return random.choice(layouts)
@@ -225,7 +295,7 @@ class _EscortGame:
         self.lever_zone = layout["lever"]
 
         # Tall blocker that cannot be jumped over; only P2 can remove it.
-        self.blocker = pygame.Rect(820, 20, 60, 480)
+        self.blocker = Rect(820, 20, 60, 480)
         self.blocker_removed = False
         self.walls.append(self.blocker)
 
@@ -235,22 +305,24 @@ class _EscortGame:
             return self.platforms + [w for w in self.walls if w is not self.blocker]
         return self.platforms + self.walls
 
-    def update(self, keys) -> str:
+    def update(self, key_down: Callable[[str], bool]) -> str:
         """Process one frame. Returns a feedback string (empty if nothing notable)."""
         if self.outcome != GameResult.IN_PROGRESS:
             return ""
 
         dx_c = dx_p = 0
-        if keys[pygame.K_a]:     dx_c -= MOVE_SPEED
-        if keys[pygame.K_d]:     dx_c += MOVE_SPEED
-        if keys[pygame.K_LEFT]:  dx_p -= MOVE_SPEED
-        if keys[pygame.K_RIGHT]: dx_p += MOVE_SPEED
+        if key_down(KEY_P1_LEFT):   dx_c -= MOVE_SPEED
+        if key_down(KEY_P1_RIGHT):  dx_c += MOVE_SPEED
+        if key_down(KEY_P2_LEFT):   dx_p -= MOVE_SPEED
+        if key_down(KEY_P2_RIGHT):  dx_p += MOVE_SPEED
 
         self.carrier.move(dx_c, self.solids)
         self.partner.move(dx_p, self.solids)
 
-        if keys[pygame.K_w]  and self.carrier.on_ground: self.carrier.vel_y = JUMP_SPEED
-        if keys[pygame.K_UP] and self.partner.on_ground:  self.partner.vel_y = JUMP_SPEED
+        if key_down(KEY_P1_JUMP) and self.carrier.on_ground:
+            self.carrier.vel_y = JUMP_SPEED
+        if key_down(KEY_P2_JUMP) and self.partner.on_ground:
+            self.partner.vel_y = JUMP_SPEED
 
         self.carrier.apply_gravity(self.solids)
         self.partner.apply_gravity(self.solids)
@@ -281,20 +353,25 @@ class _EscortGame:
                     return "hit"
         return ""
 
-    def draw(self, screen, font, small, p1_name: str, p2_name: str):
+    def draw_pygame(self, screen, font, small, p1_name: str, p2_name: str):
+        import pygame  # local import so the module loads even when pygame is absent
+
+        def pg_rect(r: Rect) -> "pygame.Rect":
+            return pygame.Rect(r.x, r.y, r.w, r.h)
+
         screen.fill(COLOR_BG)
 
-        for plat in self.platforms: pygame.draw.rect(screen, COLOR_PLATFORM, plat)
+        for plat in self.platforms: pygame.draw.rect(screen, COLOR_PLATFORM, pg_rect(plat))
         for wall in self.walls:
             if wall is self.blocker and self.blocker_removed:
                 continue
-            pygame.draw.rect(screen, COLOR_WALL, wall)
-        for hz   in self.hazards:   pygame.draw.rect(screen, COLOR_HAZARD,   hz)
-        pygame.draw.rect(screen, COLOR_LEVER, self.lever_zone)
-        pygame.draw.rect(screen, COLOR_GOAL, self.goal)
+            pygame.draw.rect(screen, COLOR_WALL, pg_rect(wall))
+        for hz   in self.hazards:   pygame.draw.rect(screen, COLOR_HAZARD,   pg_rect(hz))
+        pygame.draw.rect(screen, COLOR_LEVER, pg_rect(self.lever_zone))
+        pygame.draw.rect(screen, COLOR_GOAL, pg_rect(self.goal))
 
-        pygame.draw.rect(screen, self.carrier.color, self.carrier.rect)
-        pygame.draw.rect(screen, self.partner.color, self.partner.rect)
+        pygame.draw.rect(screen, self.carrier.color, pg_rect(self.carrier.rect))
+        pygame.draw.rect(screen, self.partner.color, pg_rect(self.partner.rect))
 
         # NPC dot above carrier
         npc_x = self.carrier.rect.centerx
@@ -323,6 +400,69 @@ class _EscortGame:
         # Main message at bottom
         msg_surf = font.render(self.message, True, COLOR_TEXT)
         screen.blit(msg_surf, (20, SCREEN_H - 34))
+
+    def draw_tk(self, canvas, p1_name: str, p2_name: str) -> None:
+        def tk_color(rgb: tuple[int, int, int]) -> str:
+            return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+
+        canvas.delete("all")
+        canvas.configure(bg=tk_color(COLOR_BG))
+
+        def rect(r: Rect, color: tuple[int, int, int]) -> None:
+            canvas.create_rectangle(
+                r.left, r.top, r.right, r.bottom,
+                fill=tk_color(color), outline=""
+            )
+
+        for plat in self.platforms:
+            rect(plat, COLOR_PLATFORM)
+        for wall in self.walls:
+            if wall is self.blocker and self.blocker_removed:
+                continue
+            rect(wall, COLOR_WALL)
+        for hz in self.hazards:
+            rect(hz, COLOR_HAZARD)
+        rect(self.lever_zone, COLOR_LEVER)
+        rect(self.goal, COLOR_GOAL)
+
+        rect(self.carrier.rect, self.carrier.color)
+        rect(self.partner.rect, self.partner.color)
+
+        npc_x = self.carrier.rect.centerx
+        npc_y = self.carrier.rect.top - 12
+        canvas.create_oval(
+            npc_x - 8, npc_y - 8, npc_x + 8, npc_y + 8,
+            fill=tk_color(COLOR_NPC), outline=""
+        )
+
+        canvas.create_text(
+            self.carrier.rect.x + 4, self.carrier.rect.y + 8,
+            anchor="nw", text="P1", fill=tk_color(COLOR_TEXT), font=("Arial", 10, "bold")
+        )
+        canvas.create_text(
+            self.partner.rect.x + 4, self.partner.rect.y + 8,
+            anchor="nw", text="P2", fill=tk_color(COLOR_TEXT), font=("Arial", 10, "bold")
+        )
+        canvas.create_text(
+            self.goal.x + 12, self.goal.y + 8,
+            anchor="nw", text="G", fill=tk_color(COLOR_TEXT), font=("Arial", 10, "bold")
+        )
+
+        hud = [
+            f"Realm: {self.realm_name}   NPC Health: {self.health}/{MAX_HEALTH}",
+            f"P1 ({p1_name}): A D W-jump    P2 ({p2_name}): ← → ↑-jump    R=Restart  Esc=Quit",
+            "Legend:  P1=Carrier  P2=Partner  G=Goal  Green=Lever  Red=Hazard  ●=NPC",
+        ]
+        for i, line in enumerate(hud):
+            canvas.create_text(
+                20, 12 + i * 20,
+                anchor="nw", text=line, fill=tk_color(COLOR_DIM), font=("Arial", 10)
+            )
+
+        canvas.create_text(
+            20, SCREEN_H - 34,
+            anchor="nw", text=self.message, fill=tk_color(COLOR_TEXT), font=("Arial", 13)
+        )
 
 
 # ── MiniAdventure wrapper ─────────────────────────────────────────────────
@@ -419,8 +559,7 @@ class EscortMission(MiniAdventure):
         Returns the final GameResult and updates profiles.
         """
         if not PYGAME_AVAILABLE:
-            print("ERROR: pygame is not installed. Run:  pip install pygame")
-            return GameResult.IN_PROGRESS
+            return self.run_tkinter_session(parent=None)
 
         pygame.init()
         screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
@@ -435,6 +574,14 @@ class EscortMission(MiniAdventure):
 
         game = _EscortGame(realm_name=self._realm_name)
         running = True
+        key_map = {
+            KEY_P1_LEFT: pygame.K_a,
+            KEY_P1_RIGHT: pygame.K_d,
+            KEY_P1_JUMP: pygame.K_w,
+            KEY_P2_LEFT: pygame.K_LEFT,
+            KEY_P2_RIGHT: pygame.K_RIGHT,
+            KEY_P2_JUMP: pygame.K_UP,
+        }
 
         while running:
             for event in pygame.event.get():
@@ -447,9 +594,9 @@ class EscortMission(MiniAdventure):
                         game.reset()
 
             keys = pygame.key.get_pressed()
-            feedback = game.update(keys)
+            game.update(lambda k: bool(keys[key_map[k]]))
 
-            game.draw(screen, font, small, p1n, p2n)
+            game.draw_pygame(screen, font, small, p1n, p2n)
             pygame.display.flip()
             clock_pg.tick(FPS)
 
@@ -470,6 +617,124 @@ class EscortMission(MiniAdventure):
             if self._p1: self.on_complete(self._p1)
             if self._p2: self.on_complete(self._p2)
             # Reuse: grant a Legendary item to both players (Item subsystem)
+            medal = Item(
+                name="Escort Medal",
+                description=f"Awarded for successfully escorting the NPC in {self._realm_name}.",
+                rarity=Rarity.LEGENDARY,
+            )
+            if self._p1:
+                snapshot = list(self._p1.inventory_snapshot) + [medal]
+                self._p1.update_snapshot(snapshot)
+            if self._p2:
+                snapshot = list(self._p2.inventory_snapshot) + [medal]
+                self._p2.update_snapshot(snapshot)
+        elif self._outcome == GameResult.COOPERATIVE_LOSS:
+            if self._p1: self.on_player_loss(self._p1)
+            if self._p2: self.on_player_loss(self._p2)
+
+        return self._outcome
+
+    def run_tkinter_session(self, parent=None) -> GameResult:
+        import tkinter as tk
+
+        p1n = self._p1.character_name if self._p1 else "Player 1"
+        p2n = self._p2.character_name if self._p2 else "Player 2"
+
+        created_root = False
+        if parent is None:
+            root = tk.Tk()
+            created_root = True
+            win = root
+        else:
+            root = parent
+            win = tk.Toplevel(root)
+
+        win.title(f"GuildQuest — Escort Across the Realm  ({p1n} & {p2n})")
+        win.geometry(f"{SCREEN_W}x{SCREEN_H}")
+        win.resizable(False, False)
+
+        canvas = tk.Canvas(win, width=SCREEN_W, height=SCREEN_H, highlightthickness=0)
+        canvas.pack(fill=tk.BOTH, expand=True)
+
+        game = _EscortGame(realm_name=self._realm_name)
+        keys_down: set[str] = set()
+        running = True
+
+        def close() -> None:
+            nonlocal running
+            running = False
+            try:
+                win.destroy()
+            except Exception:
+                pass
+
+        def on_key_press(e) -> None:
+            ks = getattr(e, "keysym", "")
+            ch = getattr(e, "char", "")
+
+            if ks == "Escape":
+                close()
+                return
+            if ch in ("r", "R"):
+                game.reset()
+                return
+
+            if ch in ("a", "A"):
+                keys_down.add(KEY_P1_LEFT)
+            elif ch in ("d", "D"):
+                keys_down.add(KEY_P1_RIGHT)
+            elif ch in ("w", "W"):
+                keys_down.add(KEY_P1_JUMP)
+            elif ks in ("Left", "Right", "Up"):
+                keys_down.add(ks)
+
+        def on_key_release(e) -> None:
+            ks = getattr(e, "keysym", "")
+            ch = getattr(e, "char", "")
+
+            if ch in ("a", "A"):
+                keys_down.discard(KEY_P1_LEFT)
+            elif ch in ("d", "D"):
+                keys_down.discard(KEY_P1_RIGHT)
+            elif ch in ("w", "W"):
+                keys_down.discard(KEY_P1_JUMP)
+            elif ks in ("Left", "Right", "Up"):
+                keys_down.discard(ks)
+
+        win.protocol("WM_DELETE_WINDOW", close)
+        win.bind("<KeyPress>", on_key_press)
+        win.bind("<KeyRelease>", on_key_release)
+
+        def tick() -> None:
+            nonlocal running
+            if not running:
+                return
+
+            game.update(lambda k: k in keys_down)
+            game.draw_tk(canvas, p1n, p2n)
+
+            if game.outcome != GameResult.IN_PROGRESS:
+                self._outcome = game.outcome
+                if self._ctx and game.clock_penalty > 0:
+                    self._ctx.clock.advance_minutes(game.clock_penalty)
+                running = False
+                win.after(2500, close)
+                return
+
+            win.after(int(1000 / FPS), tick)
+
+        tick()
+
+        if created_root:
+            win.mainloop()
+        else:
+            win.grab_set()
+            root.wait_window(win)
+
+        # Record results (same as pygame session)
+        if self._outcome == GameResult.COOPERATIVE_WIN:
+            if self._p1: self.on_complete(self._p1)
+            if self._p2: self.on_complete(self._p2)
             medal = Item(
                 name="Escort Medal",
                 description=f"Awarded for successfully escorting the NPC in {self._realm_name}.",
