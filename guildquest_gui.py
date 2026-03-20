@@ -10,7 +10,7 @@ from tkinter import ttk, messagebox
 from guildquest import (
     Campaign, Character, GuildQuestGame, Item, Permission,
     PlayerProfile, QuestEvent, Rarity, Realm, Theme,
-    TimeDisplay, User, Visibility, WorldTime, save_profiles,
+    TimeDisplay, User, Visibility, WorldTime, save_game_state,
 )
 from game_context import GameContext
 from relic_hunt import RelicHunt
@@ -237,7 +237,7 @@ class RelicHuntWindow(tk.Toplevel):
             msg="🤝  It's a tie!"
         self._p1.record_quest("Relic Hunt")
         self._p2.record_quest("Relic Hunt")
-        save_profiles(self._game.users)
+        save_game_state(self._game)
         self._status.set(msg)
         self._draw()
         cx,cy = GS*CELL//2, GS*CELL//2
@@ -259,7 +259,7 @@ class RelicHuntWindow(tk.Toplevel):
         self.lift(); self.focus_force(); self._cv.focus_force()
 
     def _quit(self):
-        save_profiles(self._game.users)
+        save_game_state(self._game)
         if self._on_close: self._on_close()
         if getattr(self, "_keys_bound_all", False):
             try:
@@ -281,12 +281,17 @@ class GuildQuestGUI:
         self.root.configure(bg=BG)
         self.root.minsize(1100, 680)
         self.game = GuildQuestGame()
+        self.root.protocol("WM_DELETE_WINDOW", self._on_close)
         self._pages: dict[str, tk.Frame] = {}
         self._nav:   dict[str, tuple]    = {}
         self._build_layout()
         self._build_sidebar()
         self._build_all_pages()
         self._show("dashboard")
+
+    def _on_close(self):
+        save_game_state(self.game)
+        self.root.destroy()
 
     #  Layout 
 
@@ -607,8 +612,7 @@ class GuildQuestGUI:
                 result = engine.run_tkinter_session(parent=self.root)
         finally:
             self.root.deiconify()
-            from guildquest import save_profiles
-            save_profiles(self.game.users)
+            save_game_state(self.game)
             self._adv_closed()
 
         # Show outcome in a dialog
@@ -679,6 +683,7 @@ class GuildQuestGUI:
         if not n: messagebox.showerror("Validation","Name required."); return
         cid=self.game.next_campaign_id; self.game.next_campaign_id+=1
         self.game.campaigns[cid]=Campaign(cid,self.game.active_user_id,n,Visibility[self._cvis.get()])
+        save_game_state(self.game)
         self._cname.set(""); self._ref_campaigns()
 
     def _del_camp(self):
@@ -692,7 +697,9 @@ class GuildQuestGUI:
         if not io: messagebox.showerror("Permission","Only owner can delete."); return
         if not messagebox.askyesno("Delete",f"Delete '{c.name}'?"): return
         for eid in c.event_ids: self.game.events.pop(eid,None)
-        self.game.campaigns.pop(cid); self._ref_campaigns()
+        self.game.campaigns.pop(cid)
+        save_game_state(self.game)
+        self._ref_campaigns()
 
     def _share_camp(self):
         sel=self._clist.curselection()
@@ -707,6 +714,7 @@ class GuildQuestGUI:
         if not uv: messagebox.showerror("Select","Select a user."); return
         uid=int(uv.split(":")[0])
         c.shares[uid]=Permission[self._shp.get()]
+        save_game_state(self.game)
         messagebox.showinfo("Shared","Campaign shared.")
 
     
@@ -801,6 +809,7 @@ class GuildQuestGUI:
         eid=self.game.next_event_id; self.game.next_event_id+=1
         self.game.events[eid]=QuestEvent(eid,n,start,end,rid)
         camp.event_ids.append(eid)
+        save_game_state(self.game)
         for k in("en","ed","eh","em","edu"): self._evars[k].set("")
         self._ref_events()
 
@@ -858,6 +867,7 @@ class GuildQuestGUI:
         if not n or not cl: messagebox.showerror("Validation","Name and class required."); return
         cid=self.game.next_character_id; self.game.next_character_id+=1
         self.game.characters[cid]=Character(cid,n,cl)
+        save_game_state(self.game)
         self._chname.set(""); self._ref_characters()
 
     def _add_item(self):
@@ -869,6 +879,7 @@ class GuildQuestGUI:
         n=self._iname.get().strip()
         if not n: messagebox.showerror("Validation","Item name required."); return
         char.inventory.append(Item(n,self._idesc.get().strip(),Rarity[self._irar.get()]))
+        save_game_state(self.game)
         self._iname.set(""); self._idesc.set(""); self._ref_characters()
 
     
@@ -912,6 +923,7 @@ class GuildQuestGUI:
         except ValueError: messagebox.showerror("Validation","Offset must be a number."); return
         rid=self.game.next_realm_id; self.game.next_realm_id+=1
         self.game.realms[rid]=Realm(rid,n,self._rdesc.get().strip(),off)
+        save_game_state(self.game)
         self._rname.set(""); self._rdesc.set(""); self._roff.set("0")
         self._ref_realms()
 
@@ -952,6 +964,7 @@ class GuildQuestGUI:
         uid=int(v.split(":")[0])
         if uid in self.game.users:
             self.game.active_user_id=uid
+            save_game_state(self.game)
             self._update_sb(); self._ref_users()
 
     def _create_user(self):
@@ -959,6 +972,7 @@ class GuildQuestGUI:
         if not n: messagebox.showerror("Validation","Name required."); return
         uid=self.game.next_user_id; self.game.next_user_id+=1
         self.game.users[uid]=User(uid,n)
+        save_game_state(self.game)
         self._nuv.set(""); self._ref_users()
 
     
@@ -1038,7 +1052,7 @@ class GuildQuestGUI:
             u.profile=PlayerProfile(character_name=cn,preferred_realm=pref)
         else:
             u.profile.character_name=cn; u.profile.preferred_realm=pref
-        save_profiles(self.game.users)
+        save_game_state(self.game)
         self._ref_profiles(); self._ref_miniadv()
         messagebox.showinfo("Saved","Profile saved.")
 
@@ -1090,6 +1104,7 @@ class GuildQuestGUI:
         s.theme=Theme[self._thv.get()]; s.time_display=TimeDisplay[self._tdv.get()]
         rv=self._srv.get()
         if rv: s.current_realm_id=int(rv.split(":")[0])
+        save_game_state(self.game)
         self._ref_settings(); messagebox.showinfo("Saved","Settings saved.")
 
     def _advance_time(self):
@@ -1099,6 +1114,7 @@ class GuildQuestGUI:
         except ValueError:
             messagebox.showerror("Validation","Enter a positive number."); return
         self.game.clock.advance_minutes(m)
+        save_game_state(self.game)
         self._adv.set(""); self._ref_settings(); self._update_sb()
 
 

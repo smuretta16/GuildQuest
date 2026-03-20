@@ -27,7 +27,7 @@ from __future__ import annotations
 import re
 from typing import Dict, List, Optional, Type
 
-from guildquest import GuildQuestGame, PlayerProfile, User, save_profiles
+from guildquest import GuildQuestGame, PlayerProfile, User, save_game_state, save_profiles
 from game_context import GameContext
 from mini_adventure import MiniAdventure, GameResult
 
@@ -104,6 +104,7 @@ class ResultTracker:
             adventure.on_complete(p1)
             adventure.on_complete(p2)
 
+        # save full game state (users/campaigns/etc) to profiles.json
         save_profiles(users)
         print("\n✔ Results saved to profiles.")
 
@@ -154,7 +155,7 @@ class GameController:
         while True:
             choice = self._show_main_menu()
             if choice == "q":
-                save_profiles(self.gq.users)
+                save_game_state(self.gq)
                 print("Farewell, adventurers!")
                 break
             adventure = self.registry.all()[choice]
@@ -228,7 +229,7 @@ class GameController:
             preferred_realm=preferred_realm,
         )
         self.gq.users[new_uid] = new_user
-        save_profiles(self.gq.users)
+        save_game_state(self.gq)
         return new_user.profile
 
     #  Main menu 

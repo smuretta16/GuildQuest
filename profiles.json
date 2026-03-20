@@ -1,120 +1,336 @@
 {
-  "1": {
-    "username": "User[1]",
-    "character_name": "blabla",
-    "preferred_realm": "Lunar Outpost",
-    "wins": 2,
-    "losses": 1,
-    "quests_completed": 7,
-    "achievements": [],
-    "quest_history": [
-      "Relic Hunt",
-      "Relic Hunt",
-      "Relic Hunt",
-      "Escort Across the Realm",
-      "Escort Across the Realm",
-      "Escort Across the Realm",
-      "Escort Across the Realm"
-    ],
-    "inventory_snapshot": [
-      {
-        "name": "Relic #2",
-        "description": "Ancient relic found in Avalon.",
-        "rarity": "RARE"
-      },
-      {
-        "name": "Relic #3",
-        "description": "Ancient relic found in Avalon.",
-        "rarity": "RARE"
-      },
-      {
-        "name": "Relic #6",
-        "description": "Ancient relic found in Avalon.",
-        "rarity": "RARE"
-      },
-      {
-        "name": "Relic #7",
-        "description": "Ancient relic found in Avalon.",
-        "rarity": "RARE"
-      },
-      {
-        "name": "Relic #8",
-        "description": "Ancient relic found in Avalon.",
-        "rarity": "RARE"
-      },
-      {
-        "name": "Escort Medal",
-        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
-        "rarity": "LEGENDARY"
-      },
-      {
-        "name": "Escort Medal",
-        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
-        "rarity": "LEGENDARY"
-      },
-      {
-        "name": "Escort Medal",
-        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
-        "rarity": "LEGENDARY"
-      },
-      {
-        "name": "Escort Medal",
-        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
-        "rarity": "LEGENDARY"
-      }
-    ]
+  "version": 2,
+  "clock": {
+    "day": 0,
+    "hour": 8,
+    "minute": 0
   },
-  "2": {
-    "username": "User[2]",
-    "character_name": "Sonja",
-    "preferred_realm": "Avalon",
-    "wins": 0,
-    "losses": 1,
-    "quests_completed": 5,
-    "achievements": [],
-    "quest_history": [
-      "Relic Hunt",
-      "Escort Across the Realm",
-      "Escort Across the Realm",
-      "Escort Across the Realm",
-      "Escort Across the Realm"
-    ],
-    "inventory_snapshot": [
-      {
-        "name": "Relic #1",
-        "description": "Ancient relic found in Avalon.",
-        "rarity": "RARE"
+  "active_user_id": 1,
+  "counters": {
+    "next_user_id": 3,
+    "next_realm_id": 20,
+    "next_campaign_id": 104,
+    "next_event_id": 1010,
+    "next_character_id": 5
+  },
+  "users": {
+    "1": {
+      "name": "User[1]",
+      "settings": {
+        "theme": "CLASSIC",
+        "time_display": "BOTH",
+        "current_realm_id": 10
       },
-      {
-        "name": "Relic #4",
-        "description": "Ancient relic found in Avalon.",
-        "rarity": "RARE"
+      "profile": null
+    },
+    "2": {
+      "name": "User[2]",
+      "settings": {
+        "theme": "CLASSIC",
+        "time_display": "BOTH",
+        "current_realm_id": 10
       },
-      {
-        "name": "Relic #5",
-        "description": "Ancient relic found in Avalon.",
-        "rarity": "RARE"
+      "profile": null
+    }
+  },
+  "realms": {
+    "10": {
+      "name": "Avalon",
+      "description": "The verdant main continent, seat of the Adventurers Guild.",
+      "minute_offset": 0
+    },
+    "11": {
+      "name": "Lunar Outpost",
+      "description": "A fortified moon station; cold, silent, and full of secrets.",
+      "minute_offset": 120
+    },
+    "12": {
+      "name": "Shadowfen",
+      "description": "A murky swamp realm where light barely penetrates the canopy.",
+      "minute_offset": -60
+    },
+    "13": {
+      "name": "Ironspire",
+      "description": "A towering mountain citadel forged by ancient dwarven clans.",
+      "minute_offset": 180
+    },
+    "14": {
+      "name": "Emberveil",
+      "description": "A volcanic archipelago of fire and floating obsidian islands.",
+      "minute_offset": 240
+    },
+    "15": {
+      "name": "Crystaldeep",
+      "description": "An underwater cavern realm lit by bioluminescent coral.",
+      "minute_offset": -120
+    },
+    "16": {
+      "name": "Thornwood",
+      "description": "A vast enchanted forest patrolled by ancient guardian spirits.",
+      "minute_offset": 30
+    },
+    "17": {
+      "name": "The Ashen Wastes",
+      "description": "A post-apocalyptic desert blasted by forgotten sorcery.",
+      "minute_offset": -90
+    },
+    "18": {
+      "name": "Skyreach",
+      "description": "Cloud cities suspended by enormous arcane levitation stones.",
+      "minute_offset": 300
+    },
+    "19": {
+      "name": "Tidehollow",
+      "description": "A coastal labyrinth of sea caves and smuggler dens.",
+      "minute_offset": 45
+    }
+  },
+  "campaigns": {
+    "100": {
+      "owner_user_id": 1,
+      "name": "Starter Campaign",
+      "visibility": "PRIVATE",
+      "archived": false,
+      "event_ids": [
+        1000,
+        1001,
+        1002
+      ],
+      "shares": {}
+    },
+    "101": {
+      "owner_user_id": 2,
+      "name": "Public One-Shot",
+      "visibility": "PUBLIC",
+      "archived": false,
+      "event_ids": [
+        1003,
+        1004
+      ],
+      "shares": {}
+    },
+    "102": {
+      "owner_user_id": 2,
+      "name": "Emberveil Expedition",
+      "visibility": "PUBLIC",
+      "archived": false,
+      "event_ids": [
+        1008,
+        1009
+      ],
+      "shares": {}
+    }
+  },
+  "events": {
+    "1000": {
+      "name": "Meet the Guildmaster",
+      "start_time": {
+        "day": 0,
+        "hour": 9,
+        "minute": 0
       },
-      {
-        "name": "Escort Medal",
-        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
-        "rarity": "LEGENDARY"
+      "end_time": {
+        "day": 0,
+        "hour": 10,
+        "minute": 0
       },
-      {
-        "name": "Escort Medal",
-        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
-        "rarity": "LEGENDARY"
+      "realm_id": 10
+    },
+    "1001": {
+      "name": "Dock at Lunar Outpost",
+      "start_time": {
+        "day": 0,
+        "hour": 18,
+        "minute": 30
       },
-      {
-        "name": "Escort Medal",
-        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
-        "rarity": "LEGENDARY"
+      "end_time": {
+        "day": 0,
+        "hour": 20,
+        "minute": 0
       },
-      {
-        "name": "Escort Medal",
-        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
-        "rarity": "LEGENDARY"
-      }
-    ]
+      "realm_id": 11
+    },
+    "1002": {
+      "name": "Shadowfen Recon",
+      "start_time": {
+        "day": 1,
+        "hour": 6,
+        "minute": 0
+      },
+      "end_time": {
+        "day": 1,
+        "hour": 9,
+        "minute": 0
+      },
+      "realm_id": 12
+    },
+    "1003": {
+      "name": "Dwarven Forge Heist",
+      "start_time": {
+        "day": 1,
+        "hour": 14,
+        "minute": 0
+      },
+      "end_time": {
+        "day": 1,
+        "hour": 18,
+        "minute": 0
+      },
+      "realm_id": 13
+    },
+    "1004": {
+      "name": "Emberveil Rescue Mission",
+      "start_time": {
+        "day": 2,
+        "hour": 8,
+        "minute": 0
+      },
+      "end_time": {
+        "day": 2,
+        "hour": 12,
+        "minute": 0
+      },
+      "realm_id": 14
+    },
+    "1005": {
+      "name": "Crystaldeep Dive",
+      "start_time": {
+        "day": 2,
+        "hour": 15,
+        "minute": 0
+      },
+      "end_time": {
+        "day": 2,
+        "hour": 19,
+        "minute": 0
+      },
+      "realm_id": 15
+    },
+    "1006": {
+      "name": "Thornwood Patrol",
+      "start_time": {
+        "day": 3,
+        "hour": 7,
+        "minute": 30
+      },
+      "end_time": {
+        "day": 3,
+        "hour": 11,
+        "minute": 30
+      },
+      "realm_id": 16
+    },
+    "1007": {
+      "name": "Ashen Wastes Survial Run",
+      "start_time": {
+        "day": 3,
+        "hour": 13,
+        "minute": 0
+      },
+      "end_time": {
+        "day": 3,
+        "hour": 17,
+        "minute": 0
+      },
+      "realm_id": 17
+    },
+    "1008": {
+      "name": "Skyreach Summit Breach",
+      "start_time": {
+        "day": 4,
+        "hour": 10,
+        "minute": 0
+      },
+      "end_time": {
+        "day": 4,
+        "hour": 14,
+        "minute": 0
+      },
+      "realm_id": 18
+    },
+    "1009": {
+      "name": "Tidehollow Smuggler Sting",
+      "start_time": {
+        "day": 4,
+        "hour": 20,
+        "minute": 0
+      },
+      "end_time": {
+        "day": 4,
+        "hour": 23,
+        "minute": 0
+      },
+      "realm_id": 19
+    }
+  },
+  "characters": {
+    "1": {
+      "name": "Aldric",
+      "character_class": "Warrior",
+      "level": 5,
+      "inventory": [
+        {
+          "name": "Ironclad Shield",
+          "description": "A dwarven-forged tower shield.",
+          "rarity": "RARE"
+        },
+        {
+          "name": "Battleaxe",
+          "description": "Heavy double-bladed axe.",
+          "rarity": "COMMON"
+        }
+      ]
+    },
+    "2": {
+      "name": "Seraphel",
+      "character_class": "Mage",
+      "level": 4,
+      "inventory": [
+        {
+          "name": "Arcane Tome",
+          "description": "Enhances spell power by 20%.",
+          "rarity": "ULTRA_RARE"
+        },
+        {
+          "name": "Mana Crystal",
+          "description": "Restores 50 mana on use.",
+          "rarity": "RARE"
+        }
+      ]
+    },
+    "3": {
+      "name": "Vex",
+      "character_class": "Rogue",
+      "level": 6,
+      "inventory": [
+        {
+          "name": "Shadow Cloak",
+          "description": "Grants brief invisibility.",
+          "rarity": "LEGENDARY"
+        },
+        {
+          "name": "Poisoned Dagger",
+          "description": "Applies venom on hit.",
+          "rarity": "RARE"
+        }
+      ]
+    },
+    "4": {
+      "name": "Brynn",
+      "character_class": "Cleric",
+      "level": 3,
+      "inventory": [
+        {
+          "name": "Holy Relic",
+          "description": "Repels undead creatures.",
+          "rarity": "ULTRA_RARE"
+        },
+        {
+          "name": "Healing Potion",
+          "description": "Restores 100 HP.",
+          "rarity": "COMMON"
+        }
+      ]
+    }
   }
 }

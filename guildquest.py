@@ -184,14 +184,357 @@ class Campaign:
 
 
 PROFILES_FILE = "profiles.json"
+_STATE_VERSION = 2
+
+
+def _serialize_world_time(t: WorldTime) -> dict:
+    return {"day": t.day, "hour": t.hour, "minute": t.minute}
+
+
+def _deserialize_world_time(d: dict) -> WorldTime:
+    try:
+        return WorldTime(int(d.get("day", 0)), int(d.get("hour", 0)), int(d.get("minute", 0)))
+    except Exception:
+        return WorldTime(0, 8, 0)
+
+
+def _serialize_item(i: Item) -> dict:
+    return {"name": i.name, "description": i.description, "rarity": i.rarity.value}
+
+
+def _deserialize_item(d: dict) -> Item:
+    return Item(
+        name=d.get("name", ""),
+        description=d.get("description", ""),
+        rarity=Rarity(d.get("rarity", Rarity.COMMON.value)),
+    )
+
+
+def _serialize_profile(p: PlayerProfile) -> dict:
+    return {
+        "character_name": p.character_name,
+        "preferred_realm": p.preferred_realm,
+        "wins": p.wins,
+        "losses": p.losses,
+        "quests_completed": p.quests_completed,
+        "achievements": p.achievements,
+        "quest_history": p.quest_history,
+        "inventory_snapshot": [_serialize_item(i) for i in p.inventory_snapshot],
+    }
+
+
+def _deserialize_profile(d: dict) -> PlayerProfile:
+    raw_items = d.get("inventory_snapshot", [])
+    snapshot = [
+        _deserialize_item(it)
+        for it in raw_items
+        if isinstance(it, dict)
+    ]
+    return PlayerProfile(
+        character_name=d.get("character_name", "Unknown"),
+        preferred_realm=d.get("preferred_realm", "Avalon"),
+        wins=int(d.get("wins", 0)),
+        losses=int(d.get("losses", 0)),
+        quests_completed=int(d.get("quests_completed", 0)),
+        achievements=list(d.get("achievements", [])),
+        quest_history=list(d.get("quest_history", [])),
+        inventory_snapshot=snapshot,
+    )
+
+
+def _serialize_settings(s: Settings) -> dict:
+    return {
+        "theme": s.theme.value,
+        "time_display": s.time_display.value,
+        "current_realm_id": s.current_realm_id,
+    }
+
+
+def _deserialize_settings(d: dict) -> Settings:
+    theme_raw = d.get("theme", Theme.CLASSIC.value)
+    td_raw = d.get("time_display", TimeDisplay.BOTH.value)
+    try:
+        theme = Theme(theme_raw)
+    except Exception:
+        theme = Theme.CLASSIC
+    try:
+        td = TimeDisplay(td_raw)
+    except Exception:
+        td = TimeDisplay.BOTH
+    try:
+        realm_id = int(d.get("current_realm_id", 10))
+    except Exception:
+        realm_id = 10
+    return Settings(theme=theme, time_display=td, current_realm_id=realm_id)
+
+
+def save_game_state(game: "GuildQuestGame", path: str = PROFILES_FILE) -> None:
+    """Persist the full game state (users, campaigns, events, realms, etc.).
+
+    Note: kept in profiles.json for project simplicity/backwards compatibility.
+    """
+    state: dict = {
+        "version": _STATE_VERSION,
+        "clock": _serialize_world_time(game.clock.now),
+        "active_user_id": game.active_user_id,
+        "counters": {
+            "next_user_id": game.next_user_id,
+            "next_realm_id": game.next_realm_id,
+            "next_campaign_id": game.next_campaign_id,
+            "next_event_id": game.next_event_id,
+            "next_character_id": game.next_character_id,
+        },
+        "users": {},
+        "realms": {},
+        "campaigns": {},
+        "events": {},
+        "characters": {},
+    }
+
+    for u in game.users.values():
+        state["users"][str(u.user_id)] = {
+            "name": u.name,
+            "settings": _serialize_settings(u.settings),
+            "profile": _serialize_profile(u.profile) if u.profile else None,
+        }
+
+    for r in game.realms.values():
+        state["realms"][str(r.realm_id)] = {
+            "name": r.name,
+            "description": r.description,
+            "minute_offset": r.minute_offset,
+        }
+
+    for c in game.campaigns.values():
+        state["campaigns"][str(c.campaign_id)] = {
+            "owner_user_id": c.owner_user_id,
+            "name": c.name,
+            "visibility": c.visibility.value,
+            "archived": c.archived,
+            "event_ids": list(c.event_ids),
+            "shares": {str(uid): perm.value for uid, perm in c.shares.items()},
+        }
+
+    for e in game.events.values():
+        state["events"][str(e.event_id)] = {
+            "name": e.name,
+            "start_time": _serialize_world_time(e.start_time),
+            "end_time": _serialize_world_time(e.end_time),
+            "realm_id": e.realm_id,
+        }
+
+    for ch in game.characters.values():
+        state["characters"][str(ch.character_id)] = {
+            "name": ch.name,
+            "character_class": ch.character_class,
+            "level": ch.level,
+            "inventory": [_serialize_item(i) for i in ch.inventory],
+        }
+
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
+
+
+def load_game_state(game: "GuildQuestGame", path: str = PROFILES_FILE) -> None:
+    """Load full game state from disk (supports legacy profile-only format)."""
+    if not os.path.exists(path):
+        return
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return
+
+    # Legacy format: { "<uid>": { "character_name": ... } }
+    if isinstance(data, dict) and "version" not in data and "users" not in data:
+        load_profiles(game.users, path=path)
+        return
+
+    if not isinstance(data, dict):
+        return
+
+    # New-format state is authoritative: replace seeded data so deletions persist.
+    game.users.clear()
+    game.realms.clear()
+    game.campaigns.clear()
+    game.events.clear()
+    game.characters.clear()
+
+    users = data.get("users", {})
+    if isinstance(users, dict):
+        for uid_str, entry in users.items():
+            try:
+                uid = int(uid_str)
+            except Exception:
+                continue
+            if not isinstance(entry, dict):
+                continue
+            name = entry.get("name", f"User[{uid}]")
+            settings = _deserialize_settings(entry.get("settings", {}) if isinstance(entry.get("settings"), dict) else {})
+            profile_raw = entry.get("profile")
+            profile = _deserialize_profile(profile_raw) if isinstance(profile_raw, dict) else None
+            game.users[uid] = User(user_id=uid, name=name, settings=settings, profile=profile)
+
+    realms = data.get("realms", {})
+    if isinstance(realms, dict):
+        for rid_str, entry in realms.items():
+            try:
+                rid = int(rid_str)
+            except Exception:
+                continue
+            if not isinstance(entry, dict):
+                continue
+            game.realms[rid] = Realm(
+                realm_id=rid,
+                name=entry.get("name", f"Realm[{rid}]"),
+                description=entry.get("description", ""),
+                minute_offset=int(entry.get("minute_offset", 0)),
+            )
+
+    campaigns = data.get("campaigns", {})
+    if isinstance(campaigns, dict):
+        for cid_str, entry in campaigns.items():
+            try:
+                cid = int(cid_str)
+            except Exception:
+                continue
+            if not isinstance(entry, dict):
+                continue
+            vis_raw = entry.get("visibility", Visibility.PRIVATE.value)
+            try:
+                vis = Visibility(vis_raw)
+            except Exception:
+                vis = Visibility.PRIVATE
+            shares_raw = entry.get("shares", {})
+            shares: Dict[int, Permission] = {}
+            if isinstance(shares_raw, dict):
+                for suid_str, perm_raw in shares_raw.items():
+                    try:
+                        suid = int(suid_str)
+                        shares[suid] = Permission(str(perm_raw))
+                    except Exception:
+                        continue
+            game.campaigns[cid] = Campaign(
+                campaign_id=cid,
+                owner_user_id=int(entry.get("owner_user_id", 1)),
+                name=entry.get("name", f"Campaign[{cid}]"),
+                visibility=vis,
+                archived=bool(entry.get("archived", False)),
+                event_ids=list(entry.get("event_ids", [])),
+                shares=shares,
+            )
+
+    events = data.get("events", {})
+    if isinstance(events, dict):
+        for eid_str, entry in events.items():
+            try:
+                eid = int(eid_str)
+            except Exception:
+                continue
+            if not isinstance(entry, dict):
+                continue
+            st = entry.get("start_time", {})
+            et = entry.get("end_time", {})
+            game.events[eid] = QuestEvent(
+                event_id=eid,
+                name=entry.get("name", f"Event[{eid}]"),
+                start_time=_deserialize_world_time(st if isinstance(st, dict) else {}),
+                end_time=_deserialize_world_time(et if isinstance(et, dict) else {}),
+                realm_id=int(entry.get("realm_id", 10)),
+            )
+
+    characters = data.get("characters", {})
+    if isinstance(characters, dict):
+        for chid_str, entry in characters.items():
+            try:
+                chid = int(chid_str)
+            except Exception:
+                continue
+            if not isinstance(entry, dict):
+                continue
+            inv_raw = entry.get("inventory", [])
+            inv = [
+                _deserialize_item(it)
+                for it in inv_raw
+                if isinstance(it, dict)
+            ]
+            game.characters[chid] = Character(
+                character_id=chid,
+                name=entry.get("name", f"Character[{chid}]"),
+                character_class=entry.get("character_class", ""),
+                level=int(entry.get("level", 1)),
+                inventory=inv,
+            )
+
+    clock_raw = data.get("clock")
+    if isinstance(clock_raw, dict):
+        game.clock.now = _deserialize_world_time(clock_raw)
+
+    try:
+        game.active_user_id = int(data.get("active_user_id", game.active_user_id))
+    except Exception:
+        pass
+
+    counters = data.get("counters", {})
+    if isinstance(counters, dict):
+        try:
+            game.next_user_id = int(counters.get("next_user_id", game.next_user_id))
+            game.next_realm_id = int(counters.get("next_realm_id", game.next_realm_id))
+            game.next_campaign_id = int(counters.get("next_campaign_id", game.next_campaign_id))
+            game.next_event_id = int(counters.get("next_event_id", game.next_event_id))
+            game.next_character_id = int(counters.get("next_character_id", game.next_character_id))
+        except Exception:
+            pass
+
+    # Fallback counters if missing/bad in file.
+    if game.next_user_id <= 0:
+        game.next_user_id = (max(game.users.keys()) + 1) if game.users else 1
+    if game.next_realm_id <= 0:
+        game.next_realm_id = (max(game.realms.keys()) + 1) if game.realms else 1
+    if game.next_campaign_id <= 0:
+        game.next_campaign_id = (max(game.campaigns.keys()) + 1) if game.campaigns else 1
+    if game.next_event_id <= 0:
+        game.next_event_id = (max(game.events.keys()) + 1) if game.events else 1
+    if game.next_character_id <= 0:
+        game.next_character_id = (max(game.characters.keys()) + 1) if game.characters else 1
+
+    if game.active_user_id not in game.users and game.users:
+        game.active_user_id = min(game.users.keys())
 
 
 def save_profiles(users: Dict[int, "User"], path: str = PROFILES_FILE) -> None:
-    """Persist all player profiles to a JSON text file.
+    """Legacy helper: persist profiles (and users) into profiles.json.
 
-    Only users who have a profile are written. The file is keyed by user_id
-    so it survives re-ordering or user deletion.
+    If profiles.json already contains a full saved game state, this updates the
+    users/profiles section without discarding campaigns/events/etc.
     """
+    # Try to preserve any existing full state on disk.
+    existing: dict = {}
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                existing = json.load(f)
+        except Exception:
+            existing = {}
+
+    if isinstance(existing, dict) and ("version" in existing or "users" in existing):
+        state = existing if isinstance(existing, dict) else {}
+        state.setdefault("version", _STATE_VERSION)
+        state.setdefault("users", {})
+        if not isinstance(state["users"], dict):
+            state["users"] = {}
+        for user in users.values():
+            state["users"][str(user.user_id)] = {
+                "name": user.name,
+                "settings": _serialize_settings(user.settings),
+                "profile": _serialize_profile(user.profile) if user.profile else None,
+            }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(state, f, indent=2)
+        return
+
+    # Old format fallback (profile-only mapping) for compatibility.
     data: Dict[str, dict] = {}
     for user in users.values():
         if user.profile is not None:
@@ -224,8 +567,26 @@ def load_profiles(users: Dict[int, "User"], path: str = PROFILES_FILE) -> None:
         return
     try:
         with open(path, "r", encoding="utf-8") as f:
-            data: Dict[str, dict] = json.load(f)
+            data = json.load(f)
     except (json.JSONDecodeError, OSError):
+        return
+
+    # New format support: {"users": {"<uid>": {"profile": {...}}}}
+    if isinstance(data, dict) and isinstance(data.get("users"), dict):
+        udata = data["users"]
+        for uid_str, entry in udata.items():
+            try:
+                uid = int(uid_str)
+            except ValueError:
+                continue
+            if uid not in users or not isinstance(entry, dict):
+                continue
+            profile_raw = entry.get("profile")
+            if isinstance(profile_raw, dict):
+                users[uid].profile = _deserialize_profile(profile_raw)
+        return
+
+    if not isinstance(data, dict):
         return
 
     for uid_str, entry in data.items():
@@ -274,7 +635,7 @@ class GuildQuestGame:
         self.next_character_id = 1
 
         self.seed_data()
-        load_profiles(self.users)
+        load_game_state(self)
 
     def seed_data(self) -> None:
         # ── Users ──────────────────────────────────────────────────────────
@@ -666,7 +1027,7 @@ class GuildQuestGame:
                 else:
                     user.profile.character_name = char_name
                     user.profile.preferred_realm = preferred
-                save_profiles(self.users)
+                save_game_state(self)
                 print("Profile saved.")
             elif pick == 2:
                 if user.profile:
@@ -770,7 +1131,7 @@ class GuildQuestGame:
 
             choice = self.read_int("> ", 0, 14)
             if choice == 0:
-                save_profiles(self.users)
+                save_game_state(self)
                 print("Goodbye.")
                 return
             if choice == 1:
