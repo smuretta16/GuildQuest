@@ -5,12 +5,16 @@
     "preferred_realm": "Lunar Outpost",
     "wins": 2,
     "losses": 1,
-    "quests_completed": 3,
+    "quests_completed": 7,
     "achievements": [],
     "quest_history": [
       "Relic Hunt",
       "Relic Hunt",
-      "Relic Hunt"
+      "Relic Hunt",
+      "Escort Across the Realm",
+      "Escort Across the Realm",
+      "Escort Across the Realm",
+      "Escort Across the Realm"
     ],
     "inventory_snapshot": [
       {
@@ -37,19 +41,43 @@
         "name": "Relic #8",
         "description": "Ancient relic found in Avalon.",
         "rarity": "RARE"
+      },
+      {
+        "name": "Escort Medal",
+        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
+        "rarity": "LEGENDARY"
+      },
+      {
+        "name": "Escort Medal",
+        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
+        "rarity": "LEGENDARY"
+      },
+      {
+        "name": "Escort Medal",
+        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
+        "rarity": "LEGENDARY"
+      },
+      {
+        "name": "Escort Medal",
+        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
+        "rarity": "LEGENDARY"
       }
     ]
   },
-  "2": {
+"2": {
     "username": "User[2]",
     "character_name": "Sonja",
     "preferred_realm": "Avalon",
     "wins": 0,
     "losses": 1,
-    "quests_completed": 1,
+    "quests_completed": 5,
     "achievements": [],
     "quest_history": [
-      "Relic Hunt"
+      "Relic Hunt",
+      "Escort Across the Realm",
+      "Escort Across the Realm",
+      "Escort Across the Realm",
+      "Escort Across the Realm"
     ],
     "inventory_snapshot": [
       {
@@ -66,6 +94,26 @@
         "name": "Relic #5",
         "description": "Ancient relic found in Avalon.",
         "rarity": "RARE"
+      },
+      {
+        "name": "Escort Medal",
+        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
+        "rarity": "LEGENDARY"
+      },
+      {
+        "name": "Escort Medal",
+        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
+        "rarity": "LEGENDARY"
+      },
+      {
+        "name": "Escort Medal",
+        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
+        "rarity": "LEGENDARY"
+      },
+      {
+        "name": "Escort Medal",
+        "description": "Awarded for successfully escorting the NPC in Shadowfen.",
+        "rarity": "LEGENDARY"
       }
     ]
   }

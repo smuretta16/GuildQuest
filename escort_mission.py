@@ -6,7 +6,7 @@ Escort Across the Realm — a co-op real-time mini-adventure using Pygame.
 Two players work together to escort an NPC carrier to the goal while
 avoiding hazards. If the carrier's health reaches 0, both players lose.
 
-Reuse notes:
+Reuse notes (required by assignment):
   - Realm: The adventure is set in the Shadowfen realm (from ctx.realms).
             Realm name is shown in the window title and HUD.
   - QuestEvent / WorldClock: Each hazard hit advances the world clock by
@@ -22,14 +22,15 @@ Controls (real-time, both players simultaneously):
   R — restart
   Esc — quit / close window
 
-Based on starter code
+Based on starter code by teammate.
 """
 
 from __future__ import annotations
 
+import os
+import random
 import subprocess
 import sys
-import os
 import tempfile
 from typing import Optional, TYPE_CHECKING
 
@@ -47,7 +48,7 @@ except ImportError:
     PYGAME_AVAILABLE = False
 
 
-#  Game constants (from starter code) 
+# ── Game constants (from starter code) ────────────────────────────────────
 
 SCREEN_W = 960
 SCREEN_H = 540
@@ -63,6 +64,7 @@ COLOR_WATER    = (80,  160, 255)
 COLOR_TEXT     = (235, 235, 235)
 COLOR_NPC      = (240, 220, 90)
 COLOR_DIM      = (160, 160, 160)
+COLOR_LEVER    = (120, 200, 140)
 
 GRAVITY    = 0.6
 MOVE_SPEED = 3.8
@@ -71,7 +73,7 @@ JUMP_SPEED = -11.5
 MAX_HEALTH = 3
 
 
-#  Player physics object 
+# ── Player physics object ─────────────────────────────────────────────────
 
 class _Player:
     def __init__(self, x, y, color, label):
@@ -103,7 +105,7 @@ class _Player:
                     self.vel_y    = 0
 
 
-#  Inner game logic (from starter code, lightly extended) 
+# ── Inner game logic (from starter code, lightly extended) ───────────────
 
 class _EscortGame:
     def __init__(self, realm_name: str = "Shadowfen"):
@@ -112,8 +114,8 @@ class _EscortGame:
         self.reset()
 
     def reset(self):
-        self.carrier = _Player(60,  420, COLOR_FIRE,  "P")
-        self.partner = _Player(110, 420, COLOR_WATER, "W")
+        self.carrier = _Player(60,  420, COLOR_FIRE,  "P1")
+        self.partner = _Player(110, 420, COLOR_WATER, "P2")
         self.health  = MAX_HEALTH
         self.outcome = GameResult.IN_PROGRESS
         self.message = (
@@ -121,37 +123,116 @@ class _EscortGame:
         )
         self.clock_penalty = 0
 
-        self.platforms = [
-            pygame.Rect(0,   500, 960, 40),   # floor
-            pygame.Rect(0,   0,   20,  540),  # left wall
-            pygame.Rect(940, 0,   20,  540),  # right wall
-            pygame.Rect(0,   0,   960, 20),   # ceiling
-            pygame.Rect(110, 430, 200, 20),
-            pygame.Rect(360, 380, 160, 18),
-            pygame.Rect(560, 320, 170, 18),
-            pygame.Rect(240, 300, 120, 18),
-            pygame.Rect(60,  240, 140, 18),
-            pygame.Rect(700, 240, 160, 18),
-            pygame.Rect(420, 240, 120, 18),
-            pygame.Rect(120, 140, 180, 18),
-            pygame.Rect(540, 140, 220, 18),
-        ]
-        self.walls = [
-            pygame.Rect(260, 320, 20, 110),
-            pygame.Rect(520, 260, 20, 140),
-            pygame.Rect(700, 380, 20, 120),
-        ]
-        self.hazards = [
-            pygame.Rect(320, 482, 80, 18),
-            pygame.Rect(520, 482, 80, 18),
-            pygame.Rect(420, 362, 60, 18),
-            pygame.Rect(250, 222, 70, 18),
-            pygame.Rect(640, 222, 70, 18),
-        ]
-        self.goal = pygame.Rect(880, 460, 40, 40)
+        def layout_set() -> dict:
+            base = [
+                pygame.Rect(0,   500, 960, 40),   # floor
+                pygame.Rect(0,   0,   20,  540),  # left wall
+                pygame.Rect(940, 0,   20,  540),  # right wall
+                pygame.Rect(0,   0,   960, 20),   # ceiling
+            ]
+
+            layouts = []
+
+            layouts.append({
+                "platforms": base + [
+                    pygame.Rect(80,  430, 220, 18),
+                    pygame.Rect(320, 390, 220, 18),
+                    pygame.Rect(560, 350, 220, 18),
+                    pygame.Rect(120, 320, 180, 18),
+                    pygame.Rect(360, 300, 160, 18),
+                    pygame.Rect(600, 280, 200, 18),
+                    pygame.Rect(200, 240, 180, 18),
+                    pygame.Rect(460, 220, 180, 18),
+                    pygame.Rect(720, 200, 180, 18),
+                    pygame.Rect(120, 170, 200, 18),
+                    pygame.Rect(380, 160, 200, 18),
+                    pygame.Rect(640, 140, 200, 18),
+                ],
+                "walls": [
+                    pygame.Rect(520, 360, 16, 140),
+                    pygame.Rect(680, 220, 16, 280),
+                ],
+                "hazards": [
+                    pygame.Rect(360, 482, 70, 18),
+                    pygame.Rect(520, 482, 70, 18),
+                    pygame.Rect(640, 482, 70, 18),
+                    pygame.Rect(420, 340, 60, 16),
+                    pygame.Rect(760, 182, 60, 16),
+                ],
+                "goal": pygame.Rect(880, 110, 40, 40),
+                "lever": pygame.Rect(140, 120, 40, 40),
+            })
+
+            layouts.append({
+                "platforms": base + [
+                    pygame.Rect(70,  420, 200, 18),
+                    pygame.Rect(290, 380, 200, 18),
+                    pygame.Rect(520, 340, 200, 18),
+                    pygame.Rect(180, 300, 180, 18),
+                    pygame.Rect(430, 270, 180, 18),
+                    pygame.Rect(680, 250, 180, 18),
+                    pygame.Rect(120, 210, 200, 18),
+                    pygame.Rect(380, 190, 200, 18),
+                    pygame.Rect(640, 170, 200, 18),
+                ],
+                "walls": [
+                    pygame.Rect(460, 340, 16, 160),
+                    pygame.Rect(740, 220, 16, 280),
+                ],
+                "hazards": [
+                    pygame.Rect(300, 482, 70, 18),
+                    pygame.Rect(470, 482, 70, 18),
+                    pygame.Rect(630, 482, 70, 18),
+                    pygame.Rect(500, 320, 60, 16),
+                ],
+                "goal": pygame.Rect(880, 150, 40, 40),
+                "lever": pygame.Rect(120, 90, 40, 40),
+            })
+
+            layouts.append({
+                "platforms": base + [
+                    pygame.Rect(90,  430, 220, 18),
+                    pygame.Rect(340, 400, 220, 18),
+                    pygame.Rect(600, 360, 220, 18),
+                    pygame.Rect(140, 320, 180, 18),
+                    pygame.Rect(380, 300, 160, 18),
+                    pygame.Rect(620, 280, 200, 18),
+                    pygame.Rect(220, 240, 180, 18),
+                    pygame.Rect(480, 220, 180, 18),
+                    pygame.Rect(740, 200, 180, 18),
+                ],
+                "walls": [
+                    pygame.Rect(560, 340, 16, 160),
+                    pygame.Rect(700, 260, 16, 240),
+                ],
+                "hazards": [
+                    pygame.Rect(360, 482, 70, 18),
+                    pygame.Rect(520, 482, 70, 18),
+                    pygame.Rect(640, 482, 70, 18),
+                    pygame.Rect(420, 330, 60, 16),
+                ],
+                "goal": pygame.Rect(880, 120, 40, 40),
+                "lever": pygame.Rect(160, 120, 40, 40),
+            })
+
+            return random.choice(layouts)
+
+        layout = layout_set()
+        self.platforms = layout["platforms"]
+        self.walls = layout["walls"]
+        self.hazards = layout["hazards"]
+        self.goal = layout["goal"]
+        self.lever_zone = layout["lever"]
+
+        # Tall blocker that cannot be jumped over; only P2 can remove it.
+        self.blocker = pygame.Rect(820, 20, 60, 480)
+        self.blocker_removed = False
+        self.walls.append(self.blocker)
 
     @property
     def solids(self):
+        if self.blocker_removed:
+            return self.platforms + [w for w in self.walls if w is not self.blocker]
         return self.platforms + self.walls
 
     def update(self, keys) -> str:
@@ -174,13 +255,17 @@ class _EscortGame:
         self.carrier.apply_gravity(self.solids)
         self.partner.apply_gravity(self.solids)
 
-        #  Goal check 
+        # Partner-only action: remove blocker when P2 reaches the lever area.
+        if self.partner.rect.colliderect(self.lever_zone):
+            self.blocker_removed = True
+
+        # ── Goal check ──────────────────────────────────────────────
         if self.carrier.rect.colliderect(self.goal):
             self.outcome = GameResult.COOPERATIVE_WIN
-            self.message = "YAYYYYY Escort succeeded! Both players WIN!"
+            self.message = "🏆 Escort succeeded! Both players WIN!"
             return "win"
 
-        #  Hazard check 
+        # ── Hazard check ────────────────────────────────────────────
         for hz in self.hazards:
             if self.carrier.rect.colliderect(hz):
                 self.health -= 1
@@ -189,7 +274,7 @@ class _EscortGame:
                 self.carrier.vel_y = 0
                 if self.health <= 0:
                     self.outcome = GameResult.COOPERATIVE_LOSS
-                    self.message = "NOOOO Escort failed! Both players LOSE."
+                    self.message = "💀 Escort failed! Both players LOSE."
                     return "loss"
                 else:
                     self.message = f"Carrier hit a hazard! Health: {self.health}/{MAX_HEALTH}"
@@ -200,8 +285,12 @@ class _EscortGame:
         screen.fill(COLOR_BG)
 
         for plat in self.platforms: pygame.draw.rect(screen, COLOR_PLATFORM, plat)
-        for wall in self.walls:     pygame.draw.rect(screen, COLOR_WALL,     wall)
+        for wall in self.walls:
+            if wall is self.blocker and self.blocker_removed:
+                continue
+            pygame.draw.rect(screen, COLOR_WALL, wall)
         for hz   in self.hazards:   pygame.draw.rect(screen, COLOR_HAZARD,   hz)
+        pygame.draw.rect(screen, COLOR_LEVER, self.lever_zone)
         pygame.draw.rect(screen, COLOR_GOAL, self.goal)
 
         pygame.draw.rect(screen, self.carrier.color, self.carrier.rect)
@@ -213,9 +302,9 @@ class _EscortGame:
         pygame.draw.circle(screen, COLOR_NPC, (npc_x, npc_y), 8)
 
         # Labels
-        for player, lbl in ((self.carrier,"P"),(self.partner,"W")):
+        for player, lbl in ((self.carrier, "P1"), (self.partner, "P2")):
             t = small.render(lbl, True, COLOR_TEXT)
-            screen.blit(t, (player.rect.x+8, player.rect.y+8))
+            screen.blit(t, (player.rect.x + 4, player.rect.y + 8))
         screen.blit(small.render("G", True, COLOR_TEXT),
                     (self.goal.x+12, self.goal.y+8))
 
@@ -226,7 +315,7 @@ class _EscortGame:
         hud = [
             f"Realm: {self.realm_name}   NPC Health: {self.health}/{MAX_HEALTH}",
             f"P1 ({p1_name}): A D W-jump    P2 ({p2_name}): ← → ↑-jump    R=Restart  Esc=Quit",
-            "Legend:  P=Carrier  W=Partner  G=Goal  Red=Hazard  ●=NPC",
+            "Legend:  P1=Carrier  P2=Partner  G=Goal  Green=Lever  Red=Hazard  ●=NPC",
         ]
         for i, line in enumerate(hud):
             screen.blit(small.render(line, True, COLOR_DIM), (20, 12 + i*20))
@@ -245,7 +334,10 @@ class EscortMission(MiniAdventure):
     Implements MiniAdventure interface so the GameController and GUI
     can treat it exactly like any other adventure.
 
-    Note: This adventure is REAL-TIME 
+    Note: This adventure is REAL-TIME (runs its own pygame loop inside
+    run_pygame_session()), which is called by the GUI launcher. The
+    standard turn-based handle_input/advance_turn interface is implemented
+    for CLI compatibility but the GUI uses the pygame window directly.
     """
 
     NAME        = "Escort Across the Realm"
@@ -262,7 +354,8 @@ class EscortMission(MiniAdventure):
         self._outcome: GameResult = GameResult.IN_PROGRESS
         self._realm_name: str = "Shadowfen"
 
-    #  MiniAdventure interface
+    # ── MiniAdventure interface ────────────────────────────────────
+
     def init(self, ctx: "GameContext", p1: PlayerProfile, p2: PlayerProfile) -> None:
         self._ctx = ctx
         self._p1  = p1
@@ -301,10 +394,12 @@ class EscortMission(MiniAdventure):
         )
 
     def handle_input(self, player_index: int, raw_input: str) -> str:
+        # Turn-based input not used in real-time mode;
+        # provided for CLI/interface compatibility only.
         return "(Escort Mission runs in real-time via Pygame window.)"
 
     def advance_turn(self) -> None:
-        pass 
+        pass  # real-time; no discrete turns
 
     def is_over(self) -> bool:
         return self._outcome != GameResult.IN_PROGRESS
@@ -315,7 +410,7 @@ class EscortMission(MiniAdventure):
     def reset(self) -> None:
         self._outcome = GameResult.IN_PROGRESS
 
-    #  Pygame session (called by GUI)
+    # ── Pygame session (called by GUI) ─────────────────────────────
 
     def run_pygame_session(self) -> GameResult:
         """
@@ -370,7 +465,7 @@ class EscortMission(MiniAdventure):
 
         pygame.quit()
 
-        #  Record results 
+        # ── Record results ──────────────────────────────────────────
         if self._outcome == GameResult.COOPERATIVE_WIN:
             if self._p1: self.on_complete(self._p1)
             if self._p2: self.on_complete(self._p2)
