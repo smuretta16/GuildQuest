@@ -118,11 +118,15 @@ class RelicHuntWindow(tk.Toplevel):
         self._build()
         self._draw()
         self._bind()
+        self._cv.focus_set()
         self.update_idletasks()
         sw,sh = self.winfo_screenwidth(), self.winfo_screenheight()
         self.geometry(f"+{(sw-self.winfo_width())//2}+{(sh-self.winfo_height())//2}")
         self.protocol("WM_DELETE_WINDOW", self._quit)
-        self.focus_set()
+        self.lift()
+        self.focus_force()
+        self.after(50, lambda: self._cv.focus_force())
+        self._keys_bound_all = True
 
     def _build(self):
         p1n, p2n = self._p1.character_name, self._p2.character_name
@@ -186,13 +190,19 @@ class RelicHuntWindow(tk.Toplevel):
                 self._status.set(f"🔴 {p2n}'s turn  (↑ ↓ ← →)")
 
     def _bind(self):
-        for k in ("w","a","s","d"): self.bind(f"<KeyPress-{k}>", self._key)
-        for k in ("Up","Down","Left","Right"): self.bind(f"<KeyPress-{k}>", self._key)
+        if getattr(self, "_keys_bound_all", False):
+            try:
+                self.unbind_all("<KeyPress>")
+            except Exception:
+                pass
+        self.bind_all("<KeyPress>", self._key)
+        self._keys_bound_all = True
 
     def _key(self, event):
         if self._engine.is_over(): return
-        k = event.keysym
-        if k in self.P1K:   pidx,d = 1, self.P1K[k]
+        k = getattr(event, "keysym", "")
+        k_norm = k.lower() if isinstance(k, str) else k
+        if k_norm in self.P1K:   pidx,d = 1, self.P1K[k_norm]
         elif k in self.P2K: pidx,d = 2, self.P2K[k]
         else: return
         fb = self._engine.handle_input(pidx, d)
@@ -245,11 +255,18 @@ class RelicHuntWindow(tk.Toplevel):
         self._engine.reset()
         ctx = GameContext(clock=self._game.clock, realms=self._game.realms)
         self._engine.init(ctx, self._p1, self._p2)
-        self._build(); self._draw(); self._bind(); self.focus_set()
+        self._build(); self._draw(); self._bind()
+        self.lift(); self.focus_force(); self._cv.focus_force()
 
     def _quit(self):
         save_profiles(self._game.users)
         if self._on_close: self._on_close()
+        if getattr(self, "_keys_bound_all", False):
+            try:
+                self.unbind_all("<KeyPress>")
+            except Exception:
+                pass
+            self._keys_bound_all = False
         self.destroy()
 
 
@@ -575,22 +592,6 @@ class GuildQuestGUI:
 
     def _launch_escort(self, p1: PlayerProfile, p2: PlayerProfile):
         """Launch Escort Mission (pygame if available, otherwise Tkinter fallback)."""
-
-        if PYGAME_AVAILABLE:
-            prompt = (
-                "Escort Across the Realm will open in a new Pygame window.\n"
-                "The main GuildQuest window will be unresponsive while the game runs.\n\n"
-                "Launch now?"
-            )
-        else:
-            prompt = (
-                "Pygame isn't installed, so Escort Across the Realm will run in a Tkinter window instead.\n"
-                "Controls are the same.\n\n"
-                "Launch now?"
-            )
-
-        if not messagebox.askyesno("Launch Escort Mission", prompt):
-            return
 
         engine = EscortMission()
         from game_context import GameContext
