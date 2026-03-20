@@ -15,22 +15,40 @@
   },
   "users": {
     "1": {
-      "name": "User[1]",
+      "name": "Thang",
       "settings": {
         "theme": "CLASSIC",
         "time_display": "BOTH",
         "current_realm_id": 10
       },
-      "profile": null
+      "profile": {
+        "character_name": "Thang",
+        "preferred_realm": "Avalon",
+        "wins": 0,
+        "losses": 0,
+        "quests_completed": 0,
+        "achievements": [],
+        "quest_history": [],
+        "inventory_snapshot": []
+      }
     },
     "2": {
-      "name": "User[2]",
+      "name": "Sonja",
       "settings": {
         "theme": "CLASSIC",
         "time_display": "BOTH",
         "current_realm_id": 10
       },
-      "profile": null
+      "profile": {
+        "character_name": "Sonja",
+        "preferred_realm": "Avalon",
+        "wins": 0,
+        "losses": 0,
+        "quests_completed": 0,
+        "achievements": [],
+        "quest_history": [],
+        "inventory_snapshot": []
+      }
     }
   },
   "realms": {
