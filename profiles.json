@@ -1,13 +1,72 @@
 {
   "1": {
     "username": "User[1]",
-    "character_name": "testing testing testing",
+    "character_name": "blabla",
     "preferred_realm": "Lunar Outpost",
-    "wins": 0,
-    "losses": 0,
-    "quests_completed": 0,
+    "wins": 2,
+    "losses": 1,
+    "quests_completed": 3,
     "achievements": [],
-    "quest_history": [],
-    "inventory_snapshot": []
+    "quest_history": [
+      "Relic Hunt",
+      "Relic Hunt",
+      "Relic Hunt"
+    ],
+    "inventory_snapshot": [
+      {
+        "name": "Relic #2",
+        "description": "Ancient relic found in Avalon.",
+        "rarity": "RARE"
+      },
+      {
+        "name": "Relic #3",
+        "description": "Ancient relic found in Avalon.",
+        "rarity": "RARE"
+      },
+      {
+        "name": "Relic #6",
+        "description": "Ancient relic found in Avalon.",
+        "rarity": "RARE"
+      },
+      {
+        "name": "Relic #7",
+        "description": "Ancient relic found in Avalon.",
+        "rarity": "RARE"
+      },
+      {
+        "name": "Relic #8",
+        "description": "Ancient relic found in Avalon.",
+        "rarity": "RARE"
+      }
+    ]
+  },
+  "2": {
+    "username": "User[2]",
+    "character_name": "Sonja",
+    "preferred_realm": "Avalon",
+    "wins": 0,
+    "losses": 1,
+    "quests_completed": 1,
+    "achievements": [],
+    "quest_history": [
+      "Relic Hunt"
+    ],
+    "inventory_snapshot": [
+      {
+        "name": "Relic #1",
+        "description": "Ancient relic found in Avalon.",
+        "rarity": "RARE"
+      },
+      {
+        "name": "Relic #4",
+        "description": "Ancient relic found in Avalon.",
+        "rarity": "RARE"
+      },
+      {
+        "name": "Relic #5",
+        "description": "Ancient relic found in Avalon.",
+        "rarity": "RARE"
+      }
+    ]
   }
 }

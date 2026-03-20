@@ -277,22 +277,80 @@ class GuildQuestGame:
         load_profiles(self.users)
 
     def seed_data(self) -> None:
+        # ── Users ──────────────────────────────────────────────────────────
         self.users[1] = User(1, "User[1]")
         self.users[2] = User(2, "User[2]")
 
-        self.realms[10] = Realm(10, "Avalon", "Main continent", 0)
-        self.realms[11] = Realm(11, "Lunar Outpost", "Moon station", 120)
+        # ── Realms ─────────────────────────────────────────────────────────
+        self.realms[10]  = Realm(10,  "Avalon",           "The verdant main continent, seat of the Adventurers Guild.",       0)
+        self.realms[11]  = Realm(11,  "Lunar Outpost",    "A fortified moon station; cold, silent, and full of secrets.",   120)
+        self.realms[12]  = Realm(12,  "Shadowfen",        "A murky swamp realm where light barely penetrates the canopy.",   -60)
+        self.realms[13]  = Realm(13,  "Ironspire",        "A towering mountain citadel forged by ancient dwarven clans.",    180)
+        self.realms[14]  = Realm(14,  "Emberveil",        "A volcanic archipelago of fire and floating obsidian islands.",    240)
+        self.realms[15]  = Realm(15,  "Crystaldeep",      "An underwater cavern realm lit by bioluminescent coral.",         -120)
+        self.realms[16]  = Realm(16,  "Thornwood",        "A vast enchanted forest patrolled by ancient guardian spirits.",   30)
+        self.realms[17]  = Realm(17,  "The Ashen Wastes", "A post-apocalyptic desert blasted by forgotten sorcery.",         -90)
+        self.realms[18]  = Realm(18,  "Skyreach",         "Cloud cities suspended by enormous arcane levitation stones.",    300)
+        self.realms[19]  = Realm(19,  "Tidehollow",       "A coastal labyrinth of sea caves and smuggler dens.",              45)
+        self.next_realm_id = 20
 
-        starter = Campaign(100, 1, "Starter Campaign", Visibility.PRIVATE)
-        public = Campaign(101, 2, "Public One-Shot", Visibility.PUBLIC)
+        # ── Campaigns ──────────────────────────────────────────────────────
+        starter  = Campaign(100, 1, "Starter Campaign",       Visibility.PRIVATE)
+        public   = Campaign(101, 2, "Public One-Shot",         Visibility.PUBLIC)
+        arc2     = Campaign(102, 1, "The Lunar Conspiracy",    Visibility.PRIVATE)
+        arc3     = Campaign(102, 2, "Emberveil Expedition",    Visibility.PUBLIC)
         self.campaigns[100] = starter
         self.campaigns[101] = public
+        self.campaigns[102] = arc2
+        self.campaigns[103] = arc3
+        self.next_campaign_id = 104
 
-        e1 = QuestEvent(1000, "Meet the Guildmaster", WorldTime(0, 9, 0), WorldTime(0, 10, 0), 10)
-        e2 = QuestEvent(1001, "Dock at Lunar Outpost", WorldTime(0, 18, 30), WorldTime(0, 20, 0), 11)
-        self.events[e1.event_id] = e1
-        self.events[e2.event_id] = e2
-        starter.event_ids.extend([e1.event_id, e2.event_id])
+        # ── Quest Events ───────────────────────────────────────────────────
+        events = [
+            QuestEvent(1000, "Meet the Guildmaster",         WorldTime(0,  9,  0), WorldTime(0, 10,  0), 10),
+            QuestEvent(1001, "Dock at Lunar Outpost",         WorldTime(0, 18, 30), WorldTime(0, 20,  0), 11),
+            QuestEvent(1002, "Shadowfen Recon",               WorldTime(1,  6,  0), WorldTime(1,  9,  0), 12),
+            QuestEvent(1003, "Dwarven Forge Heist",           WorldTime(1, 14,  0), WorldTime(1, 18,  0), 13),
+            QuestEvent(1004, "Emberveil Rescue Mission",      WorldTime(2,  8,  0), WorldTime(2, 12,  0), 14),
+            QuestEvent(1005, "Crystaldeep Dive",              WorldTime(2, 15,  0), WorldTime(2, 19,  0), 15),
+            QuestEvent(1006, "Thornwood Patrol",              WorldTime(3,  7, 30), WorldTime(3, 11, 30), 16),
+            QuestEvent(1007, "Ashen Wastes Survial Run",      WorldTime(3, 13,  0), WorldTime(3, 17,  0), 17),
+            QuestEvent(1008, "Skyreach Summit Breach",        WorldTime(4, 10,  0), WorldTime(4, 14,  0), 18),
+            QuestEvent(1009, "Tidehollow Smuggler Sting",     WorldTime(4, 20,  0), WorldTime(4, 23,  0), 19),
+        ]
+        for e in events:
+            self.events[e.event_id] = e
+        starter.event_ids.extend([1000, 1001, 1002])
+        public.event_ids.extend([1003, 1004])
+        arc2.event_ids.extend([1005, 1006, 1007])
+        arc3.event_ids.extend([1008, 1009])
+        self.next_event_id = 1010
+
+        # ── Characters ─────────────────────────────────────────────────────
+        char1 = Character(1, "Aldric",   "Warrior",  level=5)
+        char2 = Character(2, "Seraphel", "Mage",     level=4)
+        char3 = Character(3, "Vex",      "Rogue",    level=6)
+        char4 = Character(4, "Brynn",    "Cleric",   level=3)
+
+        char1.inventory = [
+            Item("Ironclad Shield",   "A dwarven-forged tower shield.",      Rarity.RARE),
+            Item("Battleaxe",         "Heavy double-bladed axe.",            Rarity.COMMON),
+        ]
+        char2.inventory = [
+            Item("Arcane Tome",       "Enhances spell power by 20%.",        Rarity.ULTRA_RARE),
+            Item("Mana Crystal",      "Restores 50 mana on use.",            Rarity.RARE),
+        ]
+        char3.inventory = [
+            Item("Shadow Cloak",      "Grants brief invisibility.",          Rarity.LEGENDARY),
+            Item("Poisoned Dagger",   "Applies venom on hit.",               Rarity.RARE),
+        ]
+        char4.inventory = [
+            Item("Holy Relic",        "Repels undead creatures.",            Rarity.ULTRA_RARE),
+            Item("Healing Potion",    "Restores 100 HP.",                    Rarity.COMMON),
+        ]
+        for ch in (char1, char2, char3, char4):
+            self.characters[ch.character_id] = ch
+        self.next_character_id = 5
 
     def read_int(self, prompt: str, min_val: Optional[int] = None, max_val: Optional[int] = None) -> int:
         while True:
