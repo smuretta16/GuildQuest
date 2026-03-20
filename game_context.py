@@ -3,7 +3,7 @@ game_context.py
 ---------------
 GameContext is the single object that mini-adventures receive when they are
 initialized. It gives each adventure access to the shared GuildQuest systems
-(clock, realms, items, etc.) that were built in the individual assignments.
+that were built in the individual assignments.
 
 Mini-adventures should read from ctx but NOT replace top-level references
 (e.g. don't do ctx.clock = something_else). Mutating the clock or realm data

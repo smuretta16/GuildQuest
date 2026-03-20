@@ -31,18 +31,18 @@ from guildquest import GuildQuestGame, PlayerProfile, User, save_profiles
 from game_context import GameContext
 from mini_adventure import MiniAdventure, GameResult
 
-# ── Import mini-adventures here ───────────────────────────────────────────
+#  Import mini-adventures here 
 from relic_hunt import RelicHunt
 # from timed_raid import TimedRaid   ← teammates add theirs here
 
 
-# ── Security: safe profile name pattern ──────────────────────────────────
+#  Security: safe profile name pattern 
 _SAFE_NAME = re.compile(r"^[a-zA-Z0-9 _\-]{1,40}$")
 
 
-# ═════════════════════════════════════════════════════════════════════════
+
 # MiniAdventureRegistry
-# ═════════════════════════════════════════════════════════════════════════
+
 
 class MiniAdventureRegistry:
     """
@@ -70,9 +70,9 @@ class MiniAdventureRegistry:
         return len(self._adventures)
 
 
-# ═════════════════════════════════════════════════════════════════════════
+
 # ResultTracker
-# ═════════════════════════════════════════════════════════════════════════
+
 
 class ResultTracker:
     """
@@ -108,9 +108,9 @@ class ResultTracker:
         print("\n✔ Results saved to profiles.")
 
 
-# ═════════════════════════════════════════════════════════════════════════
+
 # GameController
-# ═════════════════════════════════════════════════════════════════════════
+
 
 class GameController:
     """
@@ -132,7 +132,7 @@ class GameController:
         self._p1: Optional[PlayerProfile] = None
         self._p2: Optional[PlayerProfile] = None
 
-    # ── Adventure registration ─────────────────────────────────────────────
+    #  Adventure registration 
 
     def _register_adventures(self) -> None:
         """
@@ -142,7 +142,7 @@ class GameController:
         self.registry.register(RelicHunt())
         # self.registry.register(TimedRaid())   ← example for teammates
 
-    # ── Entry point ────────────────────────────────────────────────────────
+    #  Entry point 
 
     def run(self) -> None:
         print("\n╔══════════════════════════════════════╗")
@@ -160,7 +160,7 @@ class GameController:
             adventure = self.registry.all()[choice]
             self._run_adventure(adventure)
 
-    # ── Player setup ───────────────────────────────────────────────────────
+    #  Player setup 
 
     def _setup_players(self) -> None:
         """
@@ -231,7 +231,7 @@ class GameController:
         save_profiles(self.gq.users)
         return new_user.profile
 
-    # ── Main menu ──────────────────────────────────────────────────────────
+    #  Main menu 
 
     def _show_main_menu(self) -> "int | str":
         """Display the mini-adventure selection menu. Returns index or 'q'."""
@@ -259,7 +259,7 @@ class GameController:
                 pass
             print(f"Enter 1–{len(adventures)} or Q.")
 
-    # ── Adventure runner ───────────────────────────────────────────────────
+    #  Adventure runner 
 
     def _run_adventure(self, adventure: MiniAdventure) -> None:
         """Run one full session of a mini-adventure."""
@@ -276,7 +276,7 @@ class GameController:
         print(adventure.get_instructions())
         input("Press Enter to start...")
 
-        # ── Main game loop ──────────────────────────────────────────────
+        #  Main game loop 
         while not adventure.is_over():
             print(adventure.get_state_view())
 
@@ -292,7 +292,7 @@ class GameController:
 
             adventure.advance_turn()
 
-        # ── Game over ───────────────────────────────────────────────────
+        #  Game over 
         print(adventure.get_state_view())
         result = adventure.get_outcome()
         self._print_outcome(result, adventure)
@@ -314,18 +314,18 @@ class GameController:
         print("  GAME OVER")
         print("═" * 40)
         if result == GameResult.PLAYER1_WIN:
-            print(f"  🏆 {p1_name} wins!")
+            print(f"   {p1_name} wins!")
         elif result == GameResult.PLAYER2_WIN:
-            print(f"  🏆 {p2_name} wins!")
+            print(f"   {p2_name} wins!")
         elif result == GameResult.TIE:
-            print("  🤝 It's a tie!")
+            print("   It's a tie!")
         elif result == GameResult.COOPERATIVE_WIN:
-            print(f"  🏆 Both players win! Great teamwork, {p1_name} & {p2_name}!")
+            print(f"   Both players win! Great teamwork, {p1_name} & {p2_name}!")
         elif result == GameResult.COOPERATIVE_LOSS:
-            print(f"  💀 Both players lose. Better luck next time!")
+            print(f"   Both players lose. Better luck next time!")
         print("═" * 40)
 
-    # ── Utilities ──────────────────────────────────────────────────────────
+    #  Utilities 
 
     def _read_int(self, prompt: str, min_val: int, max_val: int) -> int:
         while True:
@@ -339,7 +339,7 @@ class GameController:
             print(f"  Enter a number between {min_val} and {max_val}.")
 
 
-# ── Script entry point ─────────────────────────────────────────────────────
+#  Script entry point 
 
 def main() -> None:
     controller = GameController()

@@ -17,7 +17,6 @@ from relic_hunt import RelicHunt
 from escort_mission import EscortMission, PYGAME_AVAILABLE
 from mini_adventure import GameResult
 
-# ── Design tokens ──────────────────────────────────────────────────
 BG       = "#0f0f1a"
 PANEL    = "#16213e"
 SIDEBAR  = "#0a0a14"
@@ -39,7 +38,7 @@ FB       = ("Segoe UI", 10)
 FM       = ("Consolas", 10)
 FS       = ("Segoe UI", 9)
 
-# ── Widget helpers ─────────────────────────────────────────────────
+#  Widget helpers 
 
 def _lbl(p, text, font=FB, fg=TEXT, bg=PANEL, **kw):
     return tk.Label(p, text=text, font=font, fg=fg, bg=bg, **kw)
@@ -93,9 +92,9 @@ def _card(p, title=""):
     return outer, inner
 
 
-# ════════════════════════════════════════════════════════════════════
+
 # Relic Hunt game window
-# ════════════════════════════════════════════════════════════════════
+
 
 CELL = 50
 GS   = 10
@@ -254,9 +253,9 @@ class RelicHuntWindow(tk.Toplevel):
         self.destroy()
 
 
-# ════════════════════════════════════════════════════════════════════
+
 # Main Application
-# ════════════════════════════════════════════════════════════════════
+
 
 class GuildQuestGUI:
     def __init__(self, root: tk.Tk):
@@ -272,7 +271,7 @@ class GuildQuestGUI:
         self._build_all_pages()
         self._show("dashboard")
 
-    # ── Layout ──────────────────────────────────────────────────────
+    #  Layout 
 
     def _build_layout(self):
         self._sb = tk.Frame(self.root, bg=SIDEBAR, width=195)
@@ -281,7 +280,7 @@ class GuildQuestGUI:
         self._ct = tk.Frame(self.root, bg=BG)
         self._ct.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-    # ── Sidebar ─────────────────────────────────────────────────────
+    #  Sidebar 
 
     def _build_sidebar(self):
         sb = self._sb
@@ -375,7 +374,7 @@ class GuildQuestGUI:
         self._rw.set(f"🌍 {r.name if r else '—'}")
         self._uw.set(u.name)
 
-    # ── Page factory ─────────────────────────────────────────────────
+    #  Page factory 
 
     def _page(self, pid, title, sub=""):
         pg = tk.Frame(self._ct, bg=BG)
@@ -399,9 +398,9 @@ class GuildQuestGUI:
         self._build_profiles()
         self._build_settings()
 
-    # ════════════════════════════════════════════
+    
     # DASHBOARD
-    # ════════════════════════════════════════════
+    
 
     def _build_dashboard(self):
         pg = self._page("dashboard","🏠  Dashboard","Overview of your GuildQuest world")
@@ -479,9 +478,9 @@ class GuildQuestGUI:
             except ValueError: pass
         _btn(top,"Advance",go,10).pack(pady=10)
 
-    # ════════════════════════════════════════════
+    
     # MINI-ADVENTURES
-    # ════════════════════════════════════════════
+    
 
     def _build_miniadv(self):
         pg = self._page("miniadv","🎮  Mini-Adventures",
@@ -622,9 +621,9 @@ class GuildQuestGUI:
         else:
             messagebox.showinfo("Escort Mission", "Mission ended.")
 
-    # ════════════════════════════════════════════
+    
     # CAMPAIGNS
-    # ════════════════════════════════════════════
+    
 
     def _build_campaigns(self):
         pg = self._page("campaigns","📜  Campaigns","Create and manage quest campaigns")
@@ -706,9 +705,9 @@ class GuildQuestGUI:
         c.shares[uid]=Permission[self._shp.get()]
         messagebox.showinfo("Shared","Campaign shared.")
 
-    # ════════════════════════════════════════════
+    
     # EVENTS
-    # ════════════════════════════════════════════
+    
 
     def _build_events(self):
         pg = self._page("events","⏱  Quest Events","Schedule events across realms")
@@ -801,9 +800,9 @@ class GuildQuestGUI:
         for k in("en","ed","eh","em","edu"): self._evars[k].set("")
         self._ref_events()
 
-    # ════════════════════════════════════════════
+    
     # CHARACTERS
-    # ════════════════════════════════════════════
+    
 
     def _build_characters(self):
         pg=self._page("characters","🧙  Characters","Manage your adventuring roster")
@@ -868,9 +867,9 @@ class GuildQuestGUI:
         char.inventory.append(Item(n,self._idesc.get().strip(),Rarity[self._irar.get()]))
         self._iname.set(""); self._idesc.set(""); self._ref_characters()
 
-    # ════════════════════════════════════════════
+    
     # REALMS
-    # ════════════════════════════════════════════
+    
 
     def _build_realms(self):
         pg=self._page("realms","🌍  Realms","Explore and manage GuildQuest realms")
@@ -912,9 +911,9 @@ class GuildQuestGUI:
         self._rname.set(""); self._rdesc.set(""); self._roff.set("0")
         self._ref_realms()
 
-    # ════════════════════════════════════════════
+    
     # USERS
-    # ════════════════════════════════════════════
+    
 
     def _build_users(self):
         pg=self._page("users","👤  Users","Switch active user or create a new one")
@@ -958,9 +957,9 @@ class GuildQuestGUI:
         self.game.users[uid]=User(uid,n)
         self._nuv.set(""); self._ref_users()
 
-    # ════════════════════════════════════════════
+    
     # PLAYER PROFILES
-    # ════════════════════════════════════════════
+    
 
     def _build_profiles(self):
         pg=self._page("profiles","📊  Player Profiles","Stats, quest history and profile management")
@@ -1039,9 +1038,9 @@ class GuildQuestGUI:
         self._ref_profiles(); self._ref_miniadv()
         messagebox.showinfo("Saved","Profile saved.")
 
-    # ════════════════════════════════════════════
+    
     # SETTINGS
-    # ════════════════════════════════════════════
+    
 
     def _build_settings(self):
         pg=self._page("settings","⚙  Settings","Display preferences and world time")
@@ -1099,9 +1098,9 @@ class GuildQuestGUI:
         self._adv.set(""); self._ref_settings(); self._update_sb()
 
 
-# ════════════════════════════════════════════════════════════════════
+
 # Entry point
-# ════════════════════════════════════════════════════════════════════
+
 
 def main():
     root = tk.Tk()

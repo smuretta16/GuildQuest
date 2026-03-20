@@ -6,7 +6,7 @@ Escort Across the Realm — a co-op real-time mini-adventure using Pygame.
 Two players work together to escort an NPC carrier to the goal while
 avoiding hazards. If the carrier's health reaches 0, both players lose.
 
-Reuse notes (required by assignment):
+Reuse notes:
   - Realm: The adventure is set in the Shadowfen realm (from ctx.realms).
             Realm name is shown in the window title and HUD.
   - QuestEvent / WorldClock: Each hazard hit advances the world clock by
@@ -22,7 +22,7 @@ Controls (real-time, both players simultaneously):
   R — restart
   Esc — quit / close window
 
-Based on starter code by teammate.
+Based on starter code
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ except ImportError:
     PYGAME_AVAILABLE = False
 
 
-# ── Game constants (from starter code) ────────────────────────────────────
+#  Game constants (from starter code) 
 
 SCREEN_W = 960
 SCREEN_H = 540
@@ -71,7 +71,7 @@ JUMP_SPEED = -11.5
 MAX_HEALTH = 3
 
 
-# ── Player physics object ─────────────────────────────────────────────────
+#  Player physics object 
 
 class _Player:
     def __init__(self, x, y, color, label):
@@ -103,7 +103,7 @@ class _Player:
                     self.vel_y    = 0
 
 
-# ── Inner game logic (from starter code, lightly extended) ───────────────
+#  Inner game logic (from starter code, lightly extended) 
 
 class _EscortGame:
     def __init__(self, realm_name: str = "Shadowfen"):
@@ -174,13 +174,13 @@ class _EscortGame:
         self.carrier.apply_gravity(self.solids)
         self.partner.apply_gravity(self.solids)
 
-        # ── Goal check ──────────────────────────────────────────────
+        #  Goal check 
         if self.carrier.rect.colliderect(self.goal):
             self.outcome = GameResult.COOPERATIVE_WIN
-            self.message = "🏆 Escort succeeded! Both players WIN!"
+            self.message = "YAYYYYY Escort succeeded! Both players WIN!"
             return "win"
 
-        # ── Hazard check ────────────────────────────────────────────
+        #  Hazard check 
         for hz in self.hazards:
             if self.carrier.rect.colliderect(hz):
                 self.health -= 1
@@ -189,7 +189,7 @@ class _EscortGame:
                 self.carrier.vel_y = 0
                 if self.health <= 0:
                     self.outcome = GameResult.COOPERATIVE_LOSS
-                    self.message = "💀 Escort failed! Both players LOSE."
+                    self.message = "NOOOO Escort failed! Both players LOSE."
                     return "loss"
                 else:
                     self.message = f"Carrier hit a hazard! Health: {self.health}/{MAX_HEALTH}"
@@ -245,10 +245,7 @@ class EscortMission(MiniAdventure):
     Implements MiniAdventure interface so the GameController and GUI
     can treat it exactly like any other adventure.
 
-    Note: This adventure is REAL-TIME (runs its own pygame loop inside
-    run_pygame_session()), which is called by the GUI launcher. The
-    standard turn-based handle_input/advance_turn interface is implemented
-    for CLI compatibility but the GUI uses the pygame window directly.
+    Note: This adventure is REAL-TIME 
     """
 
     NAME        = "Escort Across the Realm"
@@ -265,8 +262,7 @@ class EscortMission(MiniAdventure):
         self._outcome: GameResult = GameResult.IN_PROGRESS
         self._realm_name: str = "Shadowfen"
 
-    # ── MiniAdventure interface ────────────────────────────────────
-
+    #  MiniAdventure interface
     def init(self, ctx: "GameContext", p1: PlayerProfile, p2: PlayerProfile) -> None:
         self._ctx = ctx
         self._p1  = p1
@@ -305,12 +301,10 @@ class EscortMission(MiniAdventure):
         )
 
     def handle_input(self, player_index: int, raw_input: str) -> str:
-        # Turn-based input not used in real-time mode;
-        # provided for CLI/interface compatibility only.
         return "(Escort Mission runs in real-time via Pygame window.)"
 
     def advance_turn(self) -> None:
-        pass  # real-time; no discrete turns
+        pass 
 
     def is_over(self) -> bool:
         return self._outcome != GameResult.IN_PROGRESS
@@ -321,7 +315,7 @@ class EscortMission(MiniAdventure):
     def reset(self) -> None:
         self._outcome = GameResult.IN_PROGRESS
 
-    # ── Pygame session (called by GUI) ─────────────────────────────
+    #  Pygame session (called by GUI)
 
     def run_pygame_session(self) -> GameResult:
         """
@@ -376,7 +370,7 @@ class EscortMission(MiniAdventure):
 
         pygame.quit()
 
-        # ── Record results ──────────────────────────────────────────
+        #  Record results 
         if self._outcome == GameResult.COOPERATIVE_WIN:
             if self._p1: self.on_complete(self._p1)
             if self._p2: self.on_complete(self._p2)
